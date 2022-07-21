@@ -12,6 +12,9 @@ import seaborn_image as isns
 from yellowbrick.cluster import KElbowVisualizer
 
 
+# Source: https://www.reneshbedre.com/blog/kmeans-clustering-python.html
+
+
 # Settings
 model = cluster.KMeans()
 
