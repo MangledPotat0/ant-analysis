@@ -55,7 +55,7 @@ import scipy
 #             > y coordinate    (float)
 
 cwd = os.path.dirname(os.path.realpath(__file__))
-datapath = "../../data/trajectories/"
+datapath = "../../../data/trajectories/"
 
 ########## Load and prepare data for postprocessing ##########
 
@@ -63,7 +63,7 @@ datapath = "../../data/trajectories/"
 
 def prepare(datapath, inputfilename):
 # Convert data format and add orientation to the data
-    inputfile = h5py.File('{}{}data.h5'.format(datapath, inputfilename))
+    inputfile = h5py.File('{}{}.h5'.format(datapath, inputfilename))
     trajectories = inputfile['tracks']
     occupancy = inputfile['track_occupancy']
     converted = []
