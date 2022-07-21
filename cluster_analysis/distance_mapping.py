@@ -12,7 +12,7 @@ import scipy.spatial as sp
 
 project_path = 'C:/Users/user/Desktop/Coding/ant/'
 data_path = str(project_path+'data/trajectories/')
-output_path = str(project_path+'data/clustering_data/')
+output_path = str(project_path+'data/')
 
 def load_trajectories(fname):
     with h5py.File('{}.hdf5'.format(fname), 'r') as dfile:
