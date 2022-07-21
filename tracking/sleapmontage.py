@@ -46,15 +46,15 @@ else:
 codepath = os.path.dirname(os.path.realpath(__file__))
 os.chdir(codepath)
 
-montpath = '../../data/montages/{}'.format(args['file'])
+montpath = '../../../data/montages/{}'.format(args['file'])
 
 try:
     os.mkdir(montpath)
 except OSError:
     print('Failed to create new directory')
 
-vidpath = '../../data/videos/'
-trajpath = '../../data/trajectories/'
+vidpath = '../../../data/videos/'
+trajpath = '../../../data/trajectories/'
 
 video = cv.VideoCapture('{}{}.mp4'.format(vidpath,vidname))
 trajfile = h5py.File('{}{}.hdf5'.format(trajpath,args['file']),'r')
@@ -86,7 +86,7 @@ except:
 h = frame.shape[0]
 w = frame.shape[1]
 
-fps = 15.0
+fps = 10.0
 fourcc = cv.VideoWriter_fourcc(*'mp4v')
 api = cv.CAP_ANY
 out = cv.VideoWriter('{}/{}.mp4'.format(montpath,vidname),
@@ -103,18 +103,18 @@ for key in trajectories:
 ct = 0
 while success:
     for key in trajectories:
+        traj = trajectories[key]
         try:
-            traj = trajectories[key]
-            if ct == traj[ct,0,0]:
-                coords = traj[ct,1]
-                frame = cv.circle(frame, (int(coords[0]),int(coords[1])), 
-                                  radius, color[key], thickness)
-                coords = traj[ct,2]
-                frame = cv.circle(frame, (int(coords[0]),int(coords[1])), 
-                                  radius, color[key], thickness)
-                coords = traj[ct,3]
-                frame = cv.circle(frame, (int(coords[0]),int(coords[1])), 
-                                  radius, color[key], thickness)
+            mark = np.where(traj[:,0,0]==ct)[0][0]
+            coords = traj[mark,1]
+            frame = cv.circle(frame, (int(coords[0]),int(coords[1])), 
+                              radius, color[key], thickness)
+            coords = traj[mark,2]
+            frame = cv.circle(frame, (int(coords[0]),int(coords[1])), 
+                              radius, color[key], thickness)
+            coords = traj[mark,3]
+            frame = cv.circle(frame, (int(coords[0]),int(coords[1])), 
+                              radius, color[key], thickness)
         except IndexError:
             print('foo')
             pass

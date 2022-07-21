@@ -50,8 +50,8 @@ try:
 except OSError:
     print('Failed to create new directory')
 
-vidpath = '../../data/videos/'
-trajpath = '../../data/trajectories/'
+vidpath = '../../../data/videos/'
+trajpath = '../../../data/trajectories/'
 
 video = cv.VideoCapture('{}{}.mp4'.format(vidpath,args['file']))
 trajfile = h5py.File('{}{}data.hdf5'.format(trajpath,args['file']),'r')
