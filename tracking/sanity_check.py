@@ -98,9 +98,6 @@ if __name__=='__main__':
             print(np.where(velocityset>100))
             df = pd.DataFrame(dset, columns=cols)
             df['ant_number'] = ct
-            sns.scatterplot(x='thorax_x',y='thorax_y', data=df, alpha=0.1)
-            plt.savefig('trajectory_{}.png'.format(ct))
-            plt.close()
             sf = pd.DataFrame(velocityset, columns=cols)
             sf['ant_number'] = ct
             dframe = dframe.append(df)
