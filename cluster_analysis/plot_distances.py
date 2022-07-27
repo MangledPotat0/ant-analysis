@@ -57,12 +57,13 @@ def generate_figure(values1d, image, ct):
     fig, splt = plt.subplots(2,1)
     dframe = pd.DataFrame(data=values1d)
     isns.imshow(image, ax=splt[0])
-    sns.lineplot(data=dframe, ax=splt[1])
+    g = sns.lineplot(data=dframe, ax=splt[1])
 
     plt.title('frame={}'.format(ct))
-    if ct % 250 == 0:
-        plt.savefig('plot{}.png'.format(ct),
-                    bbox_inches='tight')
+    g.set_xlim(0,200)
+    g.set_ylim(0,0.007)
+    plt.savefig('plot{}.png'.format(ct),
+                bbox_inches='tight')
     plt.close()
     
     return
@@ -91,10 +92,12 @@ if __name__=="__main__":
     fig = plt.figure(figsize=(5.5, 5.5))
     for distance_matrix in distance_matrices:
         _, image = vidstream.read()
-        distance_list = convert_to_list(distance_matrix)
-        rdf = radial_distribution(distance_list, 10)
-        generate_figure(rdf, image, ct)
+        if ct % 250 == 0:
+            distance_list = convert_to_list(distance_matrix)
+            rdf = radial_distribution(distance_list, 10)
+            generate_figure(rdf, image, ct)
         ct += 1
+
             
     #anim = ani.ArtistAnimation(fig, stack)
     #anim.save('test.mp4', fps = 10)
