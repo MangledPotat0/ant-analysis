@@ -10,10 +10,11 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 import pandas as pd
+from scipy import signal as sig
 import seaborn as sns
 
 
-n = 1 
+n = 50
 
 with open('../paths.json','r') as f:
     paths = json.load(f)
@@ -22,6 +23,18 @@ with open('../paths.json','r') as f:
                                '\\trajectories\\clustering\\'))+'\\'
     videopath = os.path.dirname(str(paths['datapath']+
                                 '\\videos\\clustering\\'))+'\\'
+
+
+def autocorrelate(column, dset):
+    dseries = pd.Series(dset[column])
+    output = []
+    for n in range(len(dseries)):
+        acval = dseries.autocorr(lag=n)
+        output.append(acval)
+
+    output = pd.DataFrame(output, columns=['acf'])
+
+    return output
 
 
 if __name__=='__main__':
@@ -53,10 +66,20 @@ if __name__=='__main__':
             df = pd.DataFrame(dset, columns=cols)
             df['ant_number'] = ct
 
+## Trajectory plot
             sns.scatterplot(x='thorax_x',y='thorax_y', data=df, alpha=0.1)
             plt.savefig('{}_trajectory_{}.png'.format(fname,ct))
             plt.close()
 
+## Spatial Autocorrelation function
+            
+            for column in df.loc[:,'thorax_x':'thorax_y']:
+                acf = autocorrelate(column, df)
+                sns.lineplot(data=acf, legend=False).set(xlabel='t (frames)',
+                                            ylabel='acf_{}'.format(column))
+                plt.savefig('{}_{}_{}_acf.png'.format(fname, ct, column))
+                plt.close()
+            
             dframe = dframe.append(df, ignore_index=True)
             ct += 1
 
