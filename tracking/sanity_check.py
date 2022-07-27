@@ -15,7 +15,7 @@ import seaborn as sns
 resolution = 10
 coarse_grain = 5
 fps = 10
-n = 2
+n = 6
 
 with open('../paths.json','r') as f:
     paths = json.load(f)
@@ -85,7 +85,7 @@ if __name__=='__main__':
     ct = 0
     
     for fname in args['file']:
-        dfile = h5py.File('{}{}'.format(datapath,fname), 'r')
+        dfile = h5py.File('{}{}.hdf5'.format(datapath,fname), 'r')
         #vfile = cv.VideoCapture('{}{}'.format(videopath, args['video']))
         dframe = pd.DataFrame(columns=cols)
         vframe = pd.DataFrame(columns=cols)
@@ -95,7 +95,7 @@ if __name__=='__main__':
             t, _, _ = np.shape(dset)
             dset = dset.reshape([t,8])
             velocityset = dset[1:] - dset[:-1]
-            print(np.where(velocityset>100))
+            print(dset[np.where(velocityset>100)[0],0],np.where(velocityset>100))
             df = pd.DataFrame(dset, columns=cols)
             df['ant_number'] = ct
             sf = pd.DataFrame(velocityset, columns=cols)
