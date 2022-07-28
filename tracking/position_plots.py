@@ -14,7 +14,7 @@ from scipy import signal as sig
 import seaborn as sns
 
 
-n = 50
+n = 1
 
 with open('../paths.json','r') as f:
     paths = json.load(f)
@@ -73,23 +73,43 @@ if __name__=='__main__':
 
 ## Spatial Autocorrelation function
             
+            pair = pd.DataFrame()
             for column in df.loc[:,'thorax_x':'thorax_y']:
                 acf = autocorrelate(column, df)
+                pair[column] = acf
                 sns.lineplot(data=acf, legend=False).set(xlabel='t (frames)',
                                             ylabel='acf_{}'.format(column))
                 plt.savefig('{}_{}_{}_acf.png'.format(fname, ct, column))
                 plt.close()
+
+            sns.lineplot(x='thorax_x', y='thorax_y', data=pair,
+                        sort=False, alpha=0.2)
+            plt.savefig('check.png')
+            plt.close()
+
+            sns.set(style='darkgrid')
+            fig = plt.figure()
+            ax = fig.add_subplot(111, projection='3d')
+            x = range(len(pair))
+            y = pair['thorax_x']
+            z = pair['thorax_y']
+
+            ax.plot(x, y, z)
+            plt.show()
+            plt.close()
             
             dframe = dframe.append(df, ignore_index=True)
             ct += 1
 
-        sns.histplot(x='thorax_x', y='thorax_y', data=dframe, bins=(50,40), cbar=True)
+        sns.histplot(x='thorax_x', y='thorax_y', data=dframe, bins=(50,40), 
+                     cbar=True)
         plt.savefig('{}_histogram_alltime.png'.format(fname))
         plt.close()
 
     sns.histplot(x='thorax_x', y='thorax_y', data=dframe, bins=(50,40), cbar=True)
     plt.savefig('n{}_histogram_alltime.png'.format(n))
     plt.close()
+
 
 
 ## EOF
