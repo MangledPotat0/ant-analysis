@@ -2,16 +2,22 @@ import argparse
 import cv2 as cv
 import h5py
 import json
+import kneed
 import matplotlib.pyplot as plt
 import numpy as np
 import os
 import pandas as pd
 from sklearn import cluster
+from sklearn.neighbors import NearestNeighbors
 import seaborn as sns
 import seaborn_image as isns
 
-# Source: https://www.reneshbedre.com/blog/kmeans-clustering-python.html
 
+# Usage example taken from:
+# https://scikit-learn.org/stable/modules/clustering.html#dbscan
+
+# Knee location example taken from:
+# https://towardsdatascience.com/how-to-use-dbscan-effectively-ed212c02e62
 
 # Settings
 
@@ -22,6 +28,30 @@ with open('../paths.json','r') as f:
                                '\\trajectories\\clustering\\a')) + '\\'
     videopath = os.path.dirname(str(paths['datapath']+
                                 '\\videos\\clustering\\a'))+'\\'
+
+
+def find_nearest_neighbors(frameset, min_samples, t):
+    nearest_neighbors = NearestNeighbors(n_neighbors=min_samples)
+    neighbors = nearest_neighbors.fit(frameset)
+    distances, indices = np.sort(distances[:,10], axis=0)
+    
+    print(distances.head())
+
+    return distances
+
+
+def locate_knee_point(distances, t):
+    idx = np.arange(len(distances))
+    knee = KneeLocator(i, distances, S=1, curve='convex',
+                       direction='increasing', interp_method='polynomial')
+
+    if t % 500 == 0:
+        sns.lineplot(data=distances)
+        knee.plot_knee()
+        plt.savefig('distances_{}.png'.format(t))
+        plt.close()
+
+    return knee.knee
 
 
 def perform_dbscan(frame, frameset, t, vidwriter):
@@ -88,6 +118,10 @@ if __name__ == '__main__':
                          isColor = True)
 
     imstack = []
+    
+    # For min_samples the 'rule of thumb' is to use dimensionality * 2 or
+    # greater (Sander et al., 1998).
+    min_samples = 4
     for t in range(maxframe):
         _, frame = vidstream.read()
         if t % 1 == 0:
