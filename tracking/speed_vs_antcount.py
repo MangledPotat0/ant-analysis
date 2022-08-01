@@ -21,10 +21,12 @@ import os
 import pandas as pd
 import seaborn as sns
 
+
 resolution = 10
 coarse_grain = 5
 fps = 10
 n = 6
+
 
 with open('../paths.json','r') as f:
     paths = json.load(f)
@@ -56,6 +58,42 @@ def pile_data(dsets):
 
 if __name__ == '__main__':
 
+    ap = argparse.ArgumentParser()
+    ap.add_argument('-f', '--file', required=True, nargs='+',
+                    help='Data file name')
+    ap.add_argument('-v', '--video', nargs='+',
+                    help='Video file name')
+
+    args = vars(ap.parse_args())
+        
+
+    cols = ['frame', 'orientation', 'head_x', 'head_y',
+            'thorax_x', 'thorax_y', 'abdomen_x', 'abdomen_y']
+
+    ct = 0
+    
+    dspeed = pd.DataFrame()
+    for fname in args['file']:
+        dfile = h5py.File('{}{}.hdf5'.format(datapath,fname), 'r')
+        #vfile = cv.VideoCapture('{}{}'.format(videopath, args['video']))
+        
+        setsize = len(dfile.keys())
+        for key in dfile.keys():
+            dset = dfile[key][:]
+            t, _, _ = np.shape(dset)
+            dset = dset.reshape([t,8])
+            dset[1:,2:] = dset[1:,2:] - dset[:-1,2:]
+            dset = dset[1:]
+            ds = pd.DataFrame(compute_speed(dset[:,2:]),
+                              columns=['speed (px/s)'])
+            ds['setsize'] = setsize
+
+            dspeed = dspeed.append(ds, ignore_index=True)
+            ct += 1
+
+    sns.lineplot(x='setsize', y='speed (px/s)', data=dspeed)
+    plt.savefig('check.png')
+    plt.close()
 
 
 # EOF
