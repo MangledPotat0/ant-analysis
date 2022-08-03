@@ -33,29 +33,31 @@ with open('../paths.json','r') as f:
 def find_nearest_neighbors(frameset, min_samples, t):
     nearest_neighbors = NearestNeighbors(n_neighbors=min_samples)
     neighbors = nearest_neighbors.fit(frameset)
-    distances, indices = np.sort(distances[:,10], axis=0)
-    
-    print(distances.head())
+    distances, indices = neighbors.kneighbors(frameset)
 
+    distances = np.sort(distances[:,min_samples-1], axis=0)
+    
     return distances
 
 
 def locate_knee_point(distances, t):
     idx = np.arange(len(distances))
-    knee = KneeLocator(i, distances, S=1, curve='convex',
-                       direction='increasing', interp_method='polynomial')
+    knee = kneed.KneeLocator(idx, distances, S=1, curve='convex',
+                             direction='increasing', interp_method='polynomial')
 
     if t % 500 == 0:
         sns.lineplot(data=distances)
         knee.plot_knee()
+        plt.xlabel('points')
+        plt.ylabel('distance (px)')
         plt.savefig('distances_{}.png'.format(t))
         plt.close()
 
-    return knee.knee
+    return distances[knee.knee]
 
 
-def perform_dbscan(frame, frameset, t, vidwriter):
-    db = cluster.DBSCAN(eps=80, min_samples=3).fit(frameset)
+def perform_dbscan(frame, frameset, eps, t, vidwriter):
+    db = cluster.DBSCAN(eps=eps, min_samples=3).fit(frameset)
     core_samples_mask = np.zeros_like(db.labels_, dtype=bool)
     core_samples_mask[db.core_sample_indices_] = True
     labels = db.labels_
@@ -97,8 +99,8 @@ if __name__ == '__main__':
     
     args = vars(ap.parse_args())
 
-    dfile = h5py.File(str(datapath+args['file']), 'r')
-    vidstream = cv.VideoCapture(str(videopath+args['video']))
+    dfile = h5py.File('{}{}.hdf5'.format(datapath,args['file']), 'r')
+    vidstream = cv.VideoCapture('{}{}.mp4'.format(videopath,args['video']))
     maxframe = 12000
 
 
@@ -122,7 +124,7 @@ if __name__ == '__main__':
     # For min_samples the 'rule of thumb' is to use dimensionality * 2 or
     # greater (Sander et al., 1998).
     min_samples = 4
-    for t in range(maxframe):
+    for t in range(500):#maxframe):
         _, frame = vidstream.read()
         if t % 1 == 0:
             frameset = pd.DataFrame(columns=['x', 'y'])
@@ -137,7 +139,9 @@ if __name__ == '__main__':
                 except IndexError:
                     print('idk')
                 ct += 1
-            perform_dbscan(frame, frameset, t, out)
+            nearest = find_nearest_neighbors(frameset, min_samples, t)
+            eps = locate_knee_point(nearest, t)
+            perform_dbscan(frame, frameset, eps, t, out)
             
     out.release()
 
