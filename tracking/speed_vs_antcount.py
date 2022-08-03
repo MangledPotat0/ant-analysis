@@ -67,9 +67,6 @@ if __name__ == '__main__':
     args = vars(ap.parse_args())
         
 
-    cols = ['frame', 'orientation', 'head_x', 'head_y',
-            'thorax_x', 'thorax_y', 'abdomen_x', 'abdomen_y']
-
     ct = 0
     
     dspeed = pd.DataFrame()
@@ -85,14 +82,14 @@ if __name__ == '__main__':
             dset[1:,2:] = dset[1:,2:] - dset[:-1,2:]
             dset = dset[1:]
             ds = pd.DataFrame(compute_speed(dset[:,2:]),
-                              columns=['speed (px/s)'])
+                              columns=['speed (px/frame)'])
             ds['setsize'] = setsize
 
             dspeed = dspeed.append(ds, ignore_index=True)
             ct += 1
 
-    sns.lineplot(x='setsize', y='speed (px/s)', data=dspeed)
-    plt.savefig('check.png')
+    sns.lineplot(x='setsize', y='speed (px/frame)', data=dspeed)
+    plt.savefig('plot_of_speed_vs_antcount.png')
     plt.close()
 
 
