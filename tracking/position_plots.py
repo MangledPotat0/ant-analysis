@@ -4,6 +4,7 @@
 
 import argparse
 import cv2 as cv
+from datahandler import TrajectoryData
 import h5py
 import json
 import matplotlib.pyplot as plt
@@ -61,9 +62,8 @@ if __name__=='__main__':
         
         for key in dfile.keys():
             dset = dfile[key][:]
-            t, _, _ = np.shape(dset)
-            dset = dset.reshape([t,8])
-            df = pd.DataFrame(dset, columns=cols)
+            data = TrajectoryData(dset)
+            df = data.trajectory()
             df['ant_number'] = ct
 
 ## Trajectory plot
