@@ -65,16 +65,10 @@ if __name__=='__main__':
         for key in dfile.keys():
             dset = dfile[key][:]
             data = TrajectoryData(dset)
-            #t, _, _ = np.shape(dset)
-            #dset = dset.reshape([t,8])
-            #dset[1:,2:] = dset[1:,2:] - dset[:-1,2:]
-            #dset = dset[1:]
-            #df = pd.DataFrame(dset, columns=cols)
             df = data.firstderivative()
             df['ant_number'] = ct
             ds = pd.DataFrame(compute_speed(df.loc[:,2:7]),
                               columns=['speed (px/mm)'])
-
             dspeed = dspeed.append(ds)
             dframe = dframe.append(df, ignore_index=True)
             ct += 1
