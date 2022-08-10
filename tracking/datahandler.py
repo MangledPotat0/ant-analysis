@@ -9,7 +9,7 @@ import pandas as pd
 # Data in the ant trajectory format
 # It should be a pandas dataframe with (t * n) shape where t = frame count.
 
-class trajectoryData:
+class TrajectoryData:
 
     def __init__(dframe):
         self.trajectory_ = dframe
