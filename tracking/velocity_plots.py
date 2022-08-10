@@ -4,6 +4,7 @@
 
 import argparse
 import cv2 as cv
+from datahandler import TrajectoryData 
 import h5py
 import json
 import matplotlib.pyplot as plt
@@ -26,6 +27,7 @@ with open('../paths.json','r') as f:
 
 
 def compute_speed(velocity):
+    velocity = velocity.to_numpy()
     hx, hy, tx, ty, ax, ay = np.transpose(velocity)
     head = np.sqrt(hx**2 + hy**2)
     thorax = np.sqrt(tx**2 + ty**2)
@@ -36,6 +38,7 @@ def compute_speed(velocity):
     speeds = np.sum(fullbody, axis=1, where=mask)
 
     return speeds
+
 
 if __name__=='__main__':
 
@@ -61,20 +64,21 @@ if __name__=='__main__':
         
         for key in dfile.keys():
             dset = dfile[key][:]
-            t, _, _ = np.shape(dset)
-            dset = dset.reshape([t,8])
-            dset[1:,2:] = dset[1:,2:] - dset[:-1,2:]
-            dset = dset[1:]
-            df = pd.DataFrame(dset, columns=cols)
+            data = TrajectoryData(dset)
+            #t, _, _ = np.shape(dset)
+            #dset = dset.reshape([t,8])
+            #dset[1:,2:] = dset[1:,2:] - dset[:-1,2:]
+            #dset = dset[1:]
+            #df = pd.DataFrame(dset, columns=cols)
+            df = data.firstderivative()
             df['ant_number'] = ct
-            ds = pd.DataFrame(compute_speed(dset[:,2:]),
+            ds = pd.DataFrame(compute_speed(df.loc[:,2:7]),
                               columns=['speed (px/mm)'])
 
             dspeed = dspeed.append(ds)
             dframe = dframe.append(df, ignore_index=True)
             ct += 1
 
-        print(dspeed.head())
         g = sns.histplot(data=dspeed)
         g.set_xlim(0,80)
         g.set_ylim(0,7000)
