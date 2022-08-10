@@ -11,7 +11,12 @@ import pandas as pd
 
 class TrajectoryData:
 
-    def __init__(self, dframe):
+    def __init__(self, dset):
+        cols = ['frame', 'orientation', 'head_x', 'head_y',
+                'thorax_x', 'thorax_y', 'abdomen_x', 'abdomen_y']
+        t, _, _ = np.shape(dset)
+        flat = dset.reshape([t,8])
+        dframe = pd.DataFrame(flat, columns=cols)
         self.trajectory_ = dframe
         self.firstderivative_ = pd.DataFrame()
 
