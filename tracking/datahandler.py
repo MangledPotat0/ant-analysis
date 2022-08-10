@@ -11,7 +11,7 @@ import pandas as pd
 
 class TrajectoryData:
 
-    def __init__(dframe):
+    def __init__(self, dframe):
         self.trajectory_ = dframe
         self.firstderivative_ = pd.DataFrame()
 
@@ -24,19 +24,22 @@ class TrajectoryData:
     def firstderivative(self):
         shape = np.shape(self.firstderivative_)
         if shape == (0, 0):
-            self.firstderivative_ = self.derivative(data)
+            self.firstderivative_ = self.derivative(self.trajectory())
         return self.firstderivative_
 
     def derivative(self, dframe, order=1):
+
+        data = dframe.to_numpy()
 
         if order == 0:
             print('Zeroth order derivative detected')
 
         else:
             while order > 0:
-                derivative = dframe.loc(1:,1:)
-                derivative = dframe.loc(1:,1:) - dframe.loc(:-2,1:)
-                dframe = derivative
+                derivative = data[1:,1:] - data[:-1,1:]
+                data = data[1:,:]
+                data[:,1:] = derivative
+                order -= 1
 
-        return dframe
+        return pd.DataFrame(data)
                
