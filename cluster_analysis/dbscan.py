@@ -24,10 +24,7 @@ import seaborn_image as isns
 with open('../paths.json','r') as f:
     paths = json.load(f)
     codepath = paths['codepath']
-    datapath = os.path.dirname(str(paths['datapath']+
-                               '\\trajectories\\clustering\\a')) + '\\'
-    videopath = os.path.dirname(str(paths['datapath']+
-                                '\\videos\\clustering\\a'))+'\\'
+    datapath = os.path.dirname(str(paths['datapath']))
 
 
 def find_nearest_neighbors(frameset, min_samples, t):
@@ -99,8 +96,10 @@ if __name__ == '__main__':
     
     args = vars(ap.parse_args())
 
-    dfile = h5py.File('{}{}.hdf5'.format(datapath,args['file']), 'r')
-    vidstream = cv.VideoCapture('{}{}.mp4'.format(videopath,args['video']))
+    dfile = h5py.File('{}\\preprocessed\\{}\\{}.hdf5'.format(
+                            datapath, args['file'], args['file']), 'r')
+    vidstream = cv.VideoCapture('{}\\preprocessed\\{}\\{}.mp4'.format(
+                            datapath, args['video'], args['video']))
     maxframe = 12000
 
 
