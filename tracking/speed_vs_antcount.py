@@ -77,12 +77,12 @@ if __name__ == '__main__':
         setsize = len(dfile.keys())
         for key in dfile.keys():
             dset = dfile[key][:]
-            t, _, _ = np.shape(dset)
-            dset = dset.reshape([t,8])
-            dset[1:,2:] = dset[1:,2:] - dset[:-1,2:]
-            dset = dset[1:]
-            ds = pd.DataFrame(compute_speed(dset[:,2:]),
-                              columns=['speed (px/frame)'])
+            data = TrajectoryData(dset)
+            df = data.firstderivative()
+            df['ant_number'] = ct
+            ds = pd.DataFrame(compute_speed(df.loc[:,2:7]),
+                              columns=['speed (px/mm)'])
+            dspeed = dspeed.append(ds)
             ds['setsize'] = setsize
 
             dspeed = dspeed.append(ds, ignore_index=True)
