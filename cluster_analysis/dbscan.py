@@ -1,6 +1,7 @@
 import argparse
 import cv2 as cv
 import h5py
+import gitpython
 import json
 import kneed
 import matplotlib.pyplot as plt
@@ -24,7 +25,7 @@ import seaborn_image as isns
 with open('../paths.json','r') as f:
     paths = json.load(f)
     codepath = paths['codepath']
-    datapath = os.path.dirname(str(paths['datapath']))
+    datapath = paths['datapath']
 
 
 def find_nearest_neighbors(frameset, min_samples, t):
@@ -112,7 +113,9 @@ if __name__ == '__main__':
 
     wh = (4150, 2020)
     
-    out = cv.VideoWriter('output.mp4', apiPreference = cv.CAP_ANY,
+    out = cv.VideoWriter('{}\\processed\\dbscan\\'+
+                         'cluster_montage.mp4'.format(datapath),
+                         apiPreference = cv.CAP_ANY,
                          fourcc = cv.VideoWriter_fourcc(*'mp4v'),
                          fps = 10.0,
                          frameSize = wh,
