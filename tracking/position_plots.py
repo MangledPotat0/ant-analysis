@@ -16,8 +16,6 @@ from scipy import signal as sig
 import seaborn as sns
 
 
-n = 1
-
 with open('../paths.json','r') as f:
     paths = json.load(f)
     codepath = paths['codepath']
@@ -64,6 +62,7 @@ if __name__=='__main__':
 
     distances = pd.DataFrame()
     ct = 0
+    n = 0
     
     for fname in args['file']:
         dfile = h5py.File('{}preprocessed\\{}\\{}_proc.hdf5'.format(
@@ -77,6 +76,7 @@ if __name__=='__main__':
             data = TrajectoryData(dset)
             df = data.trajectory()
             df['ant_number'] = ct
+            n = len(dfile.keys())
 
 ## Trajectory plot
             sns.scatterplot(x='thorax_x',y='thorax_y', data=df, alpha=0.1)

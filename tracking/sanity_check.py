@@ -17,7 +17,6 @@ import seaborn as sns
 resolution = 10
 coarse_grain = 5
 fps = 10
-n = 6
 
 with open('../paths.json','r') as f:
     paths = json.load(f)
@@ -93,6 +92,7 @@ if __name__=='__main__':
     distances = pd.DataFrame()
     speeds = pd.DataFrame()
     ct = 0
+    n = 0
     
     for fname in args['file']:
         dfile = h5py.File('{}preprocessed\\{}\\{}_proc.hdf5'.format(
@@ -104,6 +104,7 @@ if __name__=='__main__':
         
         for key in dfile.keys():
             dset = dfile[key][:]
+            n = len(dfile.keys())
             t, _, _ = np.shape(dset)
             dset = dset.reshape([t,8])
             velocityset = dset[1:] - dset[:-1]

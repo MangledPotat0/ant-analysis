@@ -16,8 +16,6 @@ from scipy import signal as sig
 import seaborn as sns
 
 
-n = 1
-
 with open('../paths.json','r') as f:
     paths = json.load(f)
     codepath = paths['codepath']
@@ -68,7 +66,7 @@ if __name__=='__main__':
     for fname in args['file']:
         dfile = h5py.File('{}preprocessed\\{}\\{}_proc.hdf5'.format(
                                 datapath, fname, fname), 'r')
-        #vfile = cv.VideoCapture('{}preprocessed\\{}\\{}'.format(
+        #vfile = cv.VideoCapture('{}preprocessed\\{}\\{}corrected.mp4'.format(
         #                        datapath, fname, fname))
         dframe = pd.DataFrame(columns=cols)
         dspeed = pd.DataFrame()
