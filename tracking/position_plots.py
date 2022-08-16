@@ -5,7 +5,7 @@
 import argparse
 import cv2 as cv
 from datahandler import TrajectoryData
-import datetime.date
+from datetime import date
 import h5py
 import json
 import matplotlib.pyplot as plt
@@ -27,14 +27,14 @@ with open('../paths.json','r') as f:
 today = date.today()
 today = today.strftime('%Y%m%d')
 
+outputpath = str(datapath + 'processed\\position_plots\\')
 figspath = str(datapath + 'processed\\position_plots\\' + today + '\\')
 
-
 try:
-    os.mkdir(path)
-else:
+    os.mkdir(outputpath)
+    os.mkdir(figspath)
+except:
     pass
-
 
 def autocorrelate(column, dset):
     dseries = pd.Series(dset[column])
@@ -66,7 +66,7 @@ if __name__=='__main__':
     ct = 0
     
     for fname in args['file']:
-        dfile = h5py.File('{}preprocessed\\{}\\{}.hdf5'.format(
+        dfile = h5py.File('{}preprocessed\\{}\\{}_proc.hdf5'.format(
                           datapath,fname,fname), 'r')
         #vfile = cv.VideoCapture('{}{}\\{}'.format(datapath, 
         #                        args['video'], args['video']))
@@ -80,7 +80,7 @@ if __name__=='__main__':
 
 ## Trajectory plot
             sns.scatterplot(x='thorax_x',y='thorax_y', data=df, alpha=0.1)
-            plt.savefig('{}{}_trajectory_{}.png').format(figspath,fname,ct))
+            plt.savefig('{}{}_trajectory_{}.png'.format(figspath,fname,ct))
             plt.close()
 
 ## Spatial Autocorrelation function
