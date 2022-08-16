@@ -4,7 +4,7 @@
 #                                                                             #
 #   Version: 2.1.0                                                            #
 #   First written on: 2020/12/20                                              #
-#   Last modified: 2021/01/20                                                 #
+#   Last modified: 2022/08/16                                                 #
 #                                                                             #
 #   Packages used                                                             #
 #   -   numpy: Useful for array manipulation and general calculations         #
@@ -25,110 +25,113 @@ import os
 import random as rand
 import sys
 
-# Create an argument parser object
 
-ap = argparse.ArgumentParser()
+with open('../paths.json','r') as f:
+    paths = json.load(f)
+    codepath = paths['codepath']
+    datapath = paths['datapath']
 
-# Add arguments needed for the code
-# -f filename.ext -> Video file to be analyzed
-
-ap.add_argument('-f', '--file', required = True,
-                help = 'Trajectory file name')
-ap.add_argument('-v', '--video', help = 'Video ID')
-
-args = vars(ap.parse_args())
-
-if len(args['video']) == 0:
-    vidname = args['file']
-else:
-    vidname = args['video']
-
-codepath = os.path.dirname(os.path.realpath(__file__))
-os.chdir(codepath)
-
-montpath = '../../../data/montages/{}'.format(args['file'])
+outputpath = str(datapath + 'processed\\speed_plots\\')
+montpath = str(datapath + 'processed\\montages\\')
 
 try:
-    os.mkdir(montpath)
-except OSError:
-    print('Failed to create new directory')
-
-vidpath = '../../../data/videos/'
-trajpath = '../../../data/trajectories/'
-
-video = cv.VideoCapture('{}{}.mp4'.format(vidpath,vidname))
-trajfile = h5py.File('{}{}.hdf5'.format(trajpath,args['file']),'r')
-trajectories = {}
-
-for key in trajfile:
-    trajectories[key] = trajfile[key]
-
-offset = 1
-length = 27030
-ct = 0
-while ct < offset:
-    success, frame = video.read()
-    ct += 1
-radius = 3
-thickness = 2
-color = {}
-
-plotstack = []
-
-try:
-    os.makedirs('{}{}{}'.format(self.outpath,
-                                self.fileid, 
-                                self.bincount))
+    os.mkdir(outputpath)
+    os.mkdir(figspath)
 except:
-    print('Directory already exists.\n')
+    pass
 
 
-h = frame.shape[0]
-w = frame.shape[1]
+if __name__ =='__main__':
 
-fps = 10.0
-fourcc = cv.VideoWriter_fourcc(*'mp4v')
-api = cv.CAP_ANY
-out = cv.VideoWriter('{}/{}.mp4'.format(montpath,vidname),
-                    apiPreference = api,
-                    fourcc = fourcc,
-                    fps = float(fps),
-                    frameSize = (w, h),
-                    isColor = True)
-for key in trajectories:
-    color[key] = (rand.randint(0,255), # B
-                   rand.randint(0,255), # G
-                   rand.randint(0,255)) # R
+    ap = argparse.ArgumentParser()
 
-ct = 0
-while success:
+    ap.add_argument('-id', '--expid', required = True,
+                    help = 'Trajectory file name')
+
+    args = vars(ap.parse_args())
+    fname = args['expid']
+
+    try:
+        os.mkdir(str(montpath+fname))
+    except OSError:
+        print('Failed to create new directory')
+
+    video = cv.VideoCapture('{}{}\\{}corrected.mp4'.format(
+                                datapath, fname, fname))
+    trajfile = h5py.File('{}{}\\{}_proc.hdf5'.format(
+                                datapath, fname, fname),'r')
+
+    trajectories = {}
+    for key in trajfile:
+        trajectories[key] = trajfile[key]
+
+    offset = 1
+    length = video.get(cv.CAP_PROP_FRAME_COUNT)
+    ct = 0
+    while ct < offset:
+        success, frame = video.read()
+        ct += 1
+    radius = 3
+    thickness = 2
+    color = {}
+
+    plotstack = []
+
+    try:
+        os.makedirs('{}{}{}'.format(self.outpath,
+                                    self.fileid, 
+                                    self.bincount))
+    except:
+        print('Directory already exists.\n')
+
+
+    h = frame.shape[0]
+    w = frame.shape[1]
+
+    fps = 10.0
+    fourcc = cv.VideoWriter_fourcc(*'mp4v')
+    api = cv.CAP_ANY
+    out = cv.VideoWriter('{}\\{}_tracking_montage.mp4'.format(montpath,vidname),
+                        apiPreference = api,
+                        fourcc = fourcc,
+                        fps = float(fps),
+                        frameSize = (w, h),
+                        isColor = True)
     for key in trajectories:
-        traj = trajectories[key]
-        try:
-            mark = np.where(traj[:,0,0]==ct)[0][0]
-            coords = traj[mark,1]
-            frame = cv.circle(frame, (int(coords[0]),int(coords[1])), 
-                              radius, color[key], thickness)
-            coords = traj[mark,2]
-            frame = cv.circle(frame, (int(coords[0]),int(coords[1])), 
-                              radius, color[key], thickness)
-            coords = traj[mark,3]
-            frame = cv.circle(frame, (int(coords[0]),int(coords[1])), 
-                              radius, color[key], thickness)
-        except IndexError:
-            print('foo')
-            pass
-        except ValueError:
-            print('Missing body segment')
-            pass
+        color[key] = (rand.randint(0,255), # B
+                       rand.randint(0,255), # G
+                       rand.randint(0,255)) # R
 
-    out.write(frame) 
-    success, frame = video.read()
-    ct += 1
-    if ct > length:
-        success = False
+    ct = 0
+    while success:
+        for key in trajectories:
+            traj = trajectories[key]
+            try:
+                mark = np.where(traj[:,0,0]==ct)[0][0]
+                coords = traj[mark,1]
+                frame = cv.circle(frame, (int(coords[0]),int(coords[1])), 
+                                  radius, color[key], thickness)
+                coords = traj[mark,2]
+                frame = cv.circle(frame, (int(coords[0]),int(coords[1])), 
+                                  radius, color[key], thickness)
+                coords = traj[mark,3]
+                frame = cv.circle(frame, (int(coords[0]),int(coords[1])), 
+                                  radius, color[key], thickness)
+            except IndexError:
+                print('foo')
+                pass
+            except ValueError:
+                print('Missing body segment')
+                pass
 
-out.release()
-sys.exit(0)
+        out.write(frame) 
+        success, frame = video.read()
+        ct += 1
+        if ct > length:
+            success = False
+
+    out.release()
+    sys.exit(0)
+
 
 #EOF
