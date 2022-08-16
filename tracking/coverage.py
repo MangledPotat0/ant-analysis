@@ -16,10 +16,21 @@ import seaborn as sns
 with open('../paths.json','r') as f:
     paths = json.load(f)
     codepath = paths['codepath']
-    datapath = os.path.dirname(str(paths['datapath']+
-                               '\\trajectories\\clustering\\'))+'\\'
-    videopath = os.path.dirname(str(paths['datapath']+
-                                '\\videos\\clustering\\'))+'\\'
+    datapath = paths['datapath']
+
+
+today = date.today()
+today = today.strftime('%Y%m%d')
+
+outputpath = str(datapath + 'processed\\speed_plots\\')
+figspath = str(datapath + 'processed\\speed_plots\\' + today + '\\')
+
+try:
+    os.mkdir(outputpath)
+    os.mkdir(figspath)
+except:
+    pass
+
 
 # img_shape, array_shape -> [h,w] (np array)
 # ant = (1, 2) np array
@@ -50,15 +61,15 @@ if __name__ == '__main__':
     roll = 1000
 
     ap = argparse.ArgumentParser()
-    ap.add_argument('-f', '--file', required=True,
+    ap.add_argument('-id', '--expid', required=True,
                     help='Data file name')
-    ap.add_argument('-v', '--video',
-                    help='Video file name')
 
     args = vars(ap.parse_args())
-
-    dfile = h5py.File('{}{}.hdf5'.format(datapath, args['file']), 'r')
-    vfile = cv.VideoCapture('{}{}.mp4'.format(videopath, args['video']))
+    fname = args['expid']
+    dfile = h5py.File('{}preprocessed\\{}\\{}_proc.hdf5'.format(
+                            datapath, fname, fname), 'r')
+    vfile = cv.VideoCapture('{}preprocessed\\{}\\{}corrected.mp4'.format(
+                            datapath, fname, fname))
 
     ret, frame = vfile.read()
 
@@ -91,7 +102,7 @@ if __name__ == '__main__':
 
     sns.lineplot(x='time (frame)', y='cover_ratio', data=timeseries)
     sns.lineplot(x='time (frame)', y='mavg', data=timeseries)
-    plt.savefig('coverage.png')
+    plt.savefig('{}coverage.png'.format(figspath))
 
             
             
