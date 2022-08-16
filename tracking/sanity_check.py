@@ -4,6 +4,8 @@
 
 import argparse
 import cv2 as cv
+from datahandler import TrajectoryData
+from datetime import date
 import h5py
 import json
 import matplotlib.pyplot as plt
@@ -20,10 +22,20 @@ n = 6
 with open('../paths.json','r') as f:
     paths = json.load(f)
     codepath = paths['codepath']
-    datapath = os.path.dirname(str(paths['datapath']+
-                               '\\trajectories\\clustering\\'))+'\\'
-    videopath = os.path.dirname(str(paths['datapath']+
-                                '\\videos\\clustering\\'))+'\\'
+    datapath = paths['datapath']
+
+
+today = date.today()
+today = today.strftime('%Y%m%d')
+
+outputpath = str(datapath + 'processed\\sanity_checks\\')
+figspath = str(datapath + 'processed\\sanity_checks\\' + today + '\\')
+
+try:
+    os.mkdir(outputpath)
+    os.mkdir(figspath)
+except:
+    pass
 
 
 # Compute distances from head to thorax and thorax to abdomen. Filters out
@@ -71,8 +83,6 @@ if __name__=='__main__':
     ap = argparse.ArgumentParser()
     ap.add_argument('-f', '--file', required=True, nargs='+',
                     help='Data file name')
-    ap.add_argument('-v', '--video', nargs='+',
-                    help='Video file name')
 
     args = vars(ap.parse_args())
         
@@ -85,8 +95,10 @@ if __name__=='__main__':
     ct = 0
     
     for fname in args['file']:
-        dfile = h5py.File('{}{}.hdf5'.format(datapath,fname), 'r')
-        #vfile = cv.VideoCapture('{}{}'.format(videopath, args['video']))
+        dfile = h5py.File('{}preprocessed\\{}\\{}_proc.hdf5'.format(
+                                datapath, fname, fname), 'r')
+        #vfile = cv.VideoCapture('{}preprocessed\\{}\\{}corrected.mp4'.format(
+        #                        datapath, fname, fname))
         dframe = pd.DataFrame(columns=cols)
         vframe = pd.DataFrame(columns=cols)
         
@@ -120,20 +132,20 @@ if __name__=='__main__':
                       y='thorax-abdomen (mm)', space=0)
     g.plot_joint(sns.histplot)
     g.plot_marginals(sns.histplot)
-    plt.savefig('n{}_bodysize_check.png'.format(n))
+    plt.savefig('{}\\n{}_bodysize_check.png'.format(figspath,n))
     plt.close()
 
     distances['total (mm)'] = (distances['head-thorax (mm)'] + 
                                distances['thorax-abdomen (mm)'])
 
     sns.histplot(x='total (mm)', data=distances).set(title='Estimated body length')
-    plt.savefig('n{}_total_length.png'.format(n))
+    plt.savefig('{}\\n{}_total_length.png'.format(figspath,n))
     plt.close()
 
     g = sns.histplot(x='speed (mm/s)',data=speeds, log_scale=False)
     g.set_xlim(0., 20)
     g.set_ylim(0, 15000)
-    plt.savefig('n{}_speed.png'.format(n))
+    plt.savefig('{}\\n{}_speed.png'.format(figspath,n))
     plt.close()
         
 
