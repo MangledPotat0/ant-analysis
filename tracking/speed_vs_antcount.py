@@ -13,6 +13,8 @@
 
 import argparse
 import cv2 as cv
+from datahandler import TrajectoryData
+from datetime import date
 import h5py
 import json
 import matplotlib.pyplot as plt
@@ -31,13 +33,24 @@ n = 6
 with open('../paths.json','r') as f:
     paths = json.load(f)
     codepath = paths['codepath']
-    datapath = os.path.dirname(str(paths['datapath']+
-                               '\\trajectories\\clustering\\'))+'\\'
-    videopath = os.path.dirname(str(paths['datapath']+
-                                '\\videos\\clustering\\'))+'\\'
+    datapath = paths['datapath']
+
+
+today = date.today()
+today = today.strftime('%Y%m%d')
+
+outputpath = str(datapath + 'processed\\speed_plots\\')
+figspath = str(datapath + 'processed\\speed_plots\\' + today + '\\')
+
+try:
+    os.mkdir(outputpath)
+    os.mkdir(figspath)
+except:
+    pass
 
 
 def compute_speed(velocity):
+    velocity = velocity.to_numpy()
     hx, hy, tx, ty, ax, ay = np.transpose(velocity)
     head = np.sqrt(hx**2 + hy**2)
     thorax = np.sqrt(tx**2 + ty**2)
@@ -59,10 +72,8 @@ def pile_data(dsets):
 if __name__ == '__main__':
 
     ap = argparse.ArgumentParser()
-    ap.add_argument('-f', '--file', required=True, nargs='+',
-                    help='Data file name')
-    ap.add_argument('-v', '--video', nargs='+',
-                    help='Video file name')
+    ap.add_argument('-id', '--expid', required=True, nargs='+',
+                    help='experiment id')
 
     args = vars(ap.parse_args())
         
@@ -70,9 +81,10 @@ if __name__ == '__main__':
     ct = 0
     
     dspeed = pd.DataFrame()
-    for fname in args['file']:
-        dfile = h5py.File('{}{}.hdf5'.format(datapath,fname), 'r')
-        #vfile = cv.VideoCapture('{}{}'.format(videopath, args['video']))
+    for fname in args['expid']:
+        dfile = h5py.File('{}preprocessed\\{}\\{}_proc.hdf5'.format(
+                                datapath, fname, fname), 'r')
+        #vfile = cv.VideoCapture('{}{}\\{}.mp4'.format(datapath, fname, fname))
         
         setsize = len(dfile.keys())
         for key in dfile.keys():
@@ -81,15 +93,15 @@ if __name__ == '__main__':
             df = data.firstderivative()
             df['ant_number'] = ct
             ds = pd.DataFrame(compute_speed(df.loc[:,2:7]),
-                              columns=['speed (px/mm)'])
-            dspeed = dspeed.append(ds)
+                              columns=['speed (px/frame)'])
             ds['setsize'] = setsize
 
             dspeed = dspeed.append(ds, ignore_index=True)
             ct += 1
 
+    print(dspeed.head())
     sns.lineplot(x='setsize', y='speed (px/frame)', data=dspeed)
-    plt.savefig('plot_of_speed_vs_antcount.png')
+    plt.savefig('{}plot_of_speed_vs_antcount.png'.format(figspath))
     plt.close()
 
 
