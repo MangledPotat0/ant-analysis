@@ -5,6 +5,7 @@
 import argparse
 import cv2 as cv
 from datahandler import TrajectoryData
+import datetime.date
 import h5py
 import json
 import matplotlib.pyplot as plt
@@ -20,10 +21,19 @@ n = 1
 with open('../paths.json','r') as f:
     paths = json.load(f)
     codepath = paths['codepath']
-    datapath = os.path.dirname(str(paths['datapath']+
-                               '\\trajectories\\clustering\\'))+'\\'
-    videopath = os.path.dirname(str(paths['datapath']+
-                                '\\videos\\clustering\\'))+'\\'
+    datapath = paths['datapath']
+
+
+today = date.today()
+today = today.strftime('%Y%m%d')
+
+figspath = str(datapath + 'processed\\position_plots\\' + today + '\\')
+
+
+try:
+    os.mkdir(path)
+else:
+    pass
 
 
 def autocorrelate(column, dset):
@@ -56,8 +66,10 @@ if __name__=='__main__':
     ct = 0
     
     for fname in args['file']:
-        dfile = h5py.File('{}{}.hdf5'.format(datapath,fname), 'r')
-        #vfile = cv.VideoCapture('{}{}'.format(videopath, args['video']))
+        dfile = h5py.File('{}preprocessed\\{}\\{}.hdf5'.format(
+                          datapath,fname,fname), 'r')
+        #vfile = cv.VideoCapture('{}{}\\{}'.format(datapath, 
+        #                        args['video'], args['video']))
         dframe = pd.DataFrame(columns=cols)
         
         for key in dfile.keys():
@@ -68,7 +80,7 @@ if __name__=='__main__':
 
 ## Trajectory plot
             sns.scatterplot(x='thorax_x',y='thorax_y', data=df, alpha=0.1)
-            plt.savefig('{}_trajectory_{}.png'.format(fname,ct))
+            plt.savefig('{}{}_trajectory_{}.png').format(figspath,fname,ct))
             plt.close()
 
 ## Spatial Autocorrelation function
@@ -79,12 +91,13 @@ if __name__=='__main__':
                 pair[column] = acf
                 sns.lineplot(data=acf, legend=False).set(xlabel='t (frames)',
                                             ylabel='acf_{}'.format(column))
-                plt.savefig('{}_{}_{}_acf.png'.format(fname, ct, column))
+                plt.savefig('{}{}_{}_{}_acf.png'.format(figspath, fname,
+                                                        ct, column))
                 plt.close()
 
             sns.lineplot(x='thorax_x', y='thorax_y', data=pair,
                         sort=False, alpha=0.2)
-            plt.savefig('check.png')
+            plt.savefig('{}check.png'.format(figspath))
             plt.close()
 
             sns.set(style='darkgrid')
@@ -103,13 +116,12 @@ if __name__=='__main__':
 
         sns.histplot(x='thorax_x', y='thorax_y', data=dframe, bins=(50,40), 
                      cbar=True)
-        plt.savefig('{}_histogram_alltime.png'.format(fname))
+        plt.savefig('{}{}_histogram_alltime.png'.format(figspath,fname))
         plt.close()
 
     sns.histplot(x='thorax_x', y='thorax_y', data=dframe, bins=(50,40), cbar=True)
-    plt.savefig('n{}_histogram_alltime.png'.format(n))
+    plt.savefig('{}n{}_histogram_alltime.png'.format(figspath,n))
     plt.close()
-
 
 
 ## EOF
