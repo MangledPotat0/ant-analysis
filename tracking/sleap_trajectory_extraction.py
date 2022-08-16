@@ -3,9 +3,9 @@
 #   SLEAP trajectory extraction code                                           #
 #   Code written by: Dawith Lim                                                #
 #                                                                              #
-#   Version 0.9                                                                #
+#   Version 1.0                                                                #
 #   Created: 2021/12/21                                                        #
-#   Last Modified: 2022/01/11                                                  #
+#   Last Modified: 2022/08/16                                                  #
 #                                                                              #
 #   Description:                                                               #
 #     Python version of sleap_trajectory_extraction.nb                         #
@@ -25,6 +25,7 @@ import math
 import numpy as np
 import os
 import scipy
+
 
 #   DATA HIERARCHY
 
@@ -54,16 +55,20 @@ import scipy
 #             > x coordinate    (float)
 #             > y coordinate    (float)
 
-cwd = os.path.dirname(os.path.realpath(__file__))
-datapath = "../../../data/trajectories/"
+
+with open('../paths.json','r') as f:
+    paths = json.load(f)
+    codepath = paths['codepath']
+    datapath = paths['datapath']
+
 
 ########## Load and prepare data for postprocessing ##########
 
 # TEST AND DEBUG THIS BLOCK
 
-def prepare(datapath, inputfilename):
+def prepare(datapath, expid):
 # Convert data format and add orientation to the data
-    inputfile = h5py.File('{}{}.h5'.format(datapath, inputfilename))
+    inputfile = h5py.File('{}{}\\{}.h5'.format(datapath, expid, expid))
     trajectories = inputfile['tracks']
     occupancy = inputfile['track_occupancy']
     converted = []
@@ -259,11 +264,12 @@ def outputformat(trajectories):
     
     return trajectories
 
-def export(trajectories):
-
+def export(trajectories, fname):
+    
     trajectories = outputformat(trajectories)
-    dfile = h5py.File('{}{}_proc.hdf5'.format(datapath,args['file']), 'w')
+    dfile = h5py.File('{}{}\\{}_proc.hdf5'.format(datapath, fname, fname), 'w')
     ct = 0
+
     for trajectory in trajectories:
         dfile.create_dataset('trajectory{}'.format(ct),
                              data = trajectory)
@@ -283,7 +289,8 @@ if __name__=="__main__":
     ap.add_argument('-s', '--skip', type = int, required = True,
                     help = 'Skip trajectory re-stitching?')
     args = vars(ap.parse_args())
-    trajectories = prepare(datapath, args['file'])
+    fname = args['file']
+    trajectories = prepare(datapath, fname)
     
     if not args['skip']:
         threshold = 15.1 # HARDCODED VALUE; FIX THIS LATER
@@ -293,7 +300,7 @@ if __name__=="__main__":
         trajectories = link_trajectories(frames, trajectories)
         print('post-link length: ',len(trajectories))
 
-    export(trajectories)
+    export(trajectories, fname)
 
 
 # EOF
