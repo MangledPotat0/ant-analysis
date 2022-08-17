@@ -63,12 +63,6 @@ def compute_speed(velocity):
     return speeds
 
 
-def pile_data(dsets):
-
-
-    return pile
-
-
 if __name__ == '__main__':
 
     ap = argparse.ArgumentParser()
