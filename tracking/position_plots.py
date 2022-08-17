@@ -78,12 +78,12 @@ if __name__=='__main__':
             df['ant_number'] = ct
             n = len(dfile.keys())
 
-## Trajectory plot
+    ## Trajectory plot
             sns.scatterplot(x='thorax_x',y='thorax_y', data=df, alpha=0.1)
             plt.savefig('{}{}_trajectory_{}.png'.format(figspath,fname,ct))
             plt.close()
 
-## Spatial Autocorrelation function
+    ## Spatial Autocorrelation function
             
             pair = pd.DataFrame()
             for column in df.loc[:,'thorax_x':'thorax_y']:
