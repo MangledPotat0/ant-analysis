@@ -11,6 +11,9 @@ def log_generator(expids):
     print(hash_info)
     print(fnames)
 
+    logdict = {'hash': sha, 'exp_ids': expids}
+
+    return logdict
 
 
 
