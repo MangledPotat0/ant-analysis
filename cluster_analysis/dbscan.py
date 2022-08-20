@@ -1,7 +1,7 @@
 import argparse
 import cv2 as cv
+from datetime import date
 import h5py
-import gitpython
 import json
 import kneed
 import matplotlib.pyplot as plt
@@ -20,12 +20,31 @@ import seaborn_image as isns
 # Knee location example taken from:
 # https://towardsdatascience.com/how-to-use-dbscan-effectively-ed212c02e62
 
+# Additional information from Cluster Analysis and Application
+# (isbn: 9783030745523)
+
 # Settings
 
 with open('../paths.json','r') as f:
     paths = json.load(f)
     codepath = paths['codepath']
     datapath = paths['datapath']
+
+today = date.today()
+today = today.strftime('%Y%m%d')
+
+outputpath = str(datapath + 'processed\\cluster_dbscan\\')
+figspath = str(datapath + 'processed\\cluster_dbscan\\' + today + '\\')
+
+try:
+    os.mkdir(outputpath)
+except:
+    pass
+
+try:
+    os.mkdir(figspath)
+except:
+    pass
 
 
 def find_nearest_neighbors(frameset, min_samples, t):
@@ -43,12 +62,12 @@ def locate_knee_point(distances, t):
     knee = kneed.KneeLocator(idx, distances, S=1, curve='convex',
                              direction='increasing', interp_method='polynomial')
 
-    if t % 500 == 0:
+    if t % 250 == 0:
         sns.lineplot(data=distances)
         knee.plot_knee()
         plt.xlabel('points')
         plt.ylabel('distance (px)')
-        plt.savefig('distances_{}.png'.format(t))
+        plt.savefig('{}distances_{}.png'.format(figspath,t))
         plt.close()
 
     return distances[knee.knee]
@@ -90,31 +109,24 @@ def perform_dbscan(frame, frameset, eps, t, vidwriter):
 
 if __name__ == '__main__':
     ap = argparse.ArgumentParser()
-    ap.add_argument('-f', '--file', required=True,
+    ap.add_argument('-id', '--expid', required=True,
                     help='Data file name')
-    ap.add_argument('-v', '--video',
-                    help='Video file name')
     
     args = vars(ap.parse_args())
+    expid = args['expid']
 
-    dfile = h5py.File('{}\\preprocessed\\{}\\{}.hdf5'.format(
-                            datapath, args['file'], args['file']), 'r')
-    vidstream = cv.VideoCapture('{}\\preprocessed\\{}\\{}.mp4'.format(
-                            datapath, args['video'], args['video']))
-    maxframe = 12000
+    dfile = h5py.File('{}\\preprocessed\\{}\\{}_proc.hdf5'.format(
+                            datapath, expid, expid), 'r')
+    vidstream = cv.VideoCapture('{}\\preprocessed\\{}\\{}corrected.mp4'.format(
+                            datapath, expid, expid))
+    maxframe = int(vidstream.get(cv.CAP_PROP_FRAME_COUNT))
 
 
     fig, ax = plt.subplots()
 
-    try:
-        os.mkdir('output_dump')
-    except:
-        pass
-
     wh = (4150, 2020)
     
-    out = cv.VideoWriter('{}\\processed\\dbscan\\'+
-                         'cluster_montage.mp4'.format(datapath),
+    out = cv.VideoWriter('{}cluster_montage.mp4'.format(figspath),
                          apiPreference = cv.CAP_ANY,
                          fourcc = cv.VideoWriter_fourcc(*'mp4v'),
                          fps = 10.0,
@@ -125,24 +137,26 @@ if __name__ == '__main__':
     
     # For min_samples the 'rule of thumb' is to use dimensionality * 2 or
     # greater (Sander et al., 1998).
-    min_samples = 4
-    for t in range(500):#maxframe):
+    min_samples = 9
+    for t in range(maxframe):
         _, frame = vidstream.read()
-        if t % 1 == 0:
+        if t % 250 == 0:
             frameset = pd.DataFrame(columns=['x', 'y'])
             ct = 0
             for key in dfile.keys():
                 dset = dfile[key]
                 try:
                     instance = np.where(dset[:,0,0] == t)[0][0]
-                    position = pd.DataFrame(dset[instance:instance+1, 2],
+                    position = pd.DataFrame(dset[instance, 1:],
                                             columns=['x','y'])
+                    position.dropna(inplace=True)
                     frameset = frameset.append(position)
                 except IndexError:
-                    print('idk')
+                    print('Warning: IndexError. ',
+                          'Likely means a missing instance.')
                 ct += 1
             nearest = find_nearest_neighbors(frameset, min_samples, t)
-            eps = locate_knee_point(nearest, t)
+            eps = 90#locate_knee_point(nearest, t)
             perform_dbscan(frame, frameset, eps, t, out)
             
     out.release()
