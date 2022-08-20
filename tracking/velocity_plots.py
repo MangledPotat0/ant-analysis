@@ -2,6 +2,9 @@
 ################################################################################
 
 
+import sys
+sys.path.append('..\\common')
+
 import argparse
 import cv2 as cv
 from datahandler import TrajectoryData 

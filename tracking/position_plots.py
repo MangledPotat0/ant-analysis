@@ -1,6 +1,8 @@
 ################################################################################
 ################################################################################
 
+import sys
+sys.path.append('..\\common')
 
 import argparse
 import cv2 as cv
@@ -30,6 +32,10 @@ figspath = str(datapath + 'processed\\position_plots\\' + today + '\\')
 
 try:
     os.mkdir(outputpath)
+except:
+    pass
+
+try:
     os.mkdir(figspath)
 except:
     pass
