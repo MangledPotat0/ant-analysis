@@ -38,7 +38,18 @@ except:
 
 if __name__ == '__main__':
 
-    print('mlem')
+    ap = argparse.ArgumentParser()
+    ap.add_argument('-id', '--expid', help='Experiment ID')
+    ap.add_argument('-t', '--threshold', help='Threshold value for speed')
+    args = vars(ap.parse_args())
+    expid = args['expid']
 
+    dfile = h5py.File('{}preprocessed\\{}\\{}_proc.hdf5'.format(
+                                datapath,expid,expid))
+    
+    for key in dfile.keys():
+        dset = TrajectoryData(dfile[key][:])
+        speed = dset.speed()
+        print(speed.head())
 
 # EOF
