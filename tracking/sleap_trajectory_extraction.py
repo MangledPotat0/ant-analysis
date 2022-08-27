@@ -18,8 +18,12 @@
 #                                                                              #
 ################################################################################
 
+import sys
+sys.path.append('..\\common')
+
 import argparse
 import h5py
+import json
 import kde
 import math
 import numpy as np
@@ -61,6 +65,7 @@ with open('../paths.json','r') as f:
     codepath = paths['codepath']
     datapath = paths['datapath']
 
+datapath = datapath + 'preprocessed\\'
 
 ########## Load and prepare data for postprocessing ##########
 
