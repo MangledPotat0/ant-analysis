@@ -44,26 +44,24 @@ except:
 if __name__ == '__main__':
 
     ap = argparse.ArgumentParser()
-    ap.add_argument('-id', '--expid', help='Experiment ID')
+    ap.add_argument('-id', '--expid', help='Experiment ID', nargs='+')
 
     args = vars(ap.parse_args())
-    expid = args['expid']
-
-    dtable = pd.read_hdf('{}{}_active_ants.hdf5'.format(figspath, expid))
-
-    maxant = max(dtable['antID'])
+    expids = args['expid']
 
     values = []
-    for ant in range(maxant):
-        print(ant)
-        thisant = dtable[dtable['antID']==ant].copy()
-        active_counts = len(thisant[thisant['state']=='active'])
-        inactive_counts = len(thisant[thisant['state']=='inactive'])
-        values.append(active_counts / (active_counts+inactive_counts))
+    for expid in expids:
+        dtable = pd.read_hdf('{}{}_active_ants.hdf5'.format(figspath, expid))
+        maxant = max(dtable['antID'])
+
+        for ant in range(maxant):
+            thisant = dtable[dtable['antID']==ant].copy()
+            active_counts = len(thisant[thisant['state']=='active'])
+            inactive_counts = len(thisant[thisant['state']=='inactive'])
+            values.append(active_counts / (active_counts+inactive_counts))
 
     values = pd.Series(values)
-
     sns.histplot(data=values)
-    plt.savefig('{}{}_check.png'.format(figspath,expid))
+    plt.savefig('{}state_time_ratio.png'.format(figspath))
 
 # EOF
