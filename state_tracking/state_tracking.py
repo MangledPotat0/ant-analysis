@@ -48,7 +48,7 @@ if __name__ == '__main__':
     ap.add_argument('-t', '--threshold', help='Threshold value for speed')
     args = vars(ap.parse_args())
     expid = args['expid']
-    threshold = int(args['threshold'])
+    threshold = float(args['threshold'])
 
     dfile = h5py.File('{}preprocessed\\{}\\{}_proc.hdf5'.format(
                                 datapath, expid, expid))
@@ -78,7 +78,7 @@ if __name__ == '__main__':
     active = dtable[dtable['state']=='active']
     inactive = dtable[dtable['state']=='inactive']
 
-    dtable.to_hdf('{}{}_active_ant.shdf5'.format(figspath, expid), mode='w',
+    dtable.to_hdf('{}{}_active_ants.hdf5'.format(figspath, expid), mode='w',
                   key='ant_state_data')
 
     '''
