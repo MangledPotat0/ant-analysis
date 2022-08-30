@@ -33,6 +33,10 @@ figspath = str(datapath + 'processed\\speed_plots\\' + today + '\\')
 
 try:
     os.mkdir(outputpath)
+except:
+    pass
+
+try:
     os.mkdir(figspath)
 except:
     pass
@@ -77,12 +81,8 @@ if __name__=='__main__':
         for key in dfile.keys():
             dset = dfile[key][:]
             data = TrajectoryData(dset)
-            df = data.firstderivative()
-            df['ant_number'] = ct
-            ds = pd.DataFrame(compute_speed(df.loc[:,2:7]),
-                              columns=['speed (px/mm)'])
-            dspeed = dspeed.append(ds)
-            dframe = dframe.append(df, ignore_index=True)
+            df = data.speed()
+            dspeed = dspeed.append(df['thorax'].copy(),ignore_index=True)
             ct += 1
 
         g = sns.histplot(data=dspeed)
