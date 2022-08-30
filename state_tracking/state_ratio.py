@@ -48,20 +48,27 @@ if __name__ == '__main__':
 
     args = vars(ap.parse_args())
     expids = args['expid']
+    allvalues = pd.Series(dtype=float)
 
-    values = []
     for expid in expids:
         dtable = pd.read_hdf('{}{}_active_ants.hdf5'.format(figspath, expid))
         maxant = max(dtable['antID'])
 
+        values = []
         for ant in range(maxant):
             thisant = dtable[dtable['antID']==ant].copy()
             active_counts = len(thisant[thisant['state']=='active'])
             inactive_counts = len(thisant[thisant['state']=='inactive'])
             values.append(active_counts / (active_counts+inactive_counts))
-
-    values = pd.Series(values)
-    sns.histplot(data=values)
+        
+        values = pd.Series(values)
+        allvalues = allvalues.append(values)
+        sns.histplot(data=values)
+        plt.savefig('{}{}state_time_ratio.png'.format(figspath, expid))
+        plt.close()
+    
+    sns.histplot(data=allvalues)
     plt.savefig('{}state_time_ratio.png'.format(figspath))
+    plt.close()
 
 # EOF
