@@ -44,7 +44,7 @@ class TrajectoryData:
     def derivative(self, dframe, order=1):
         colnames = dframe.columns
 
-        data = dframe.to_numpy()
+        data = dframe.copy().to_numpy()
 
         if order == 0:
             print('Zeroth order derivative detected')
@@ -71,8 +71,14 @@ class TrajectoryData:
             newrow = np.array([row[0],row[1], head, thorax, abdomen,
                                np.mean([head,thorax,abdomen])])
             newrow = pd.DataFrame([newrow], columns=colnames)
+            newtable = newtable.append(newrow, ignore_index=True)
 
-        return newtable.append(newrow, ignore_index=True)
+        return newtable
+
+    def moving_average(self, dframe, interval):
+        mavg = dframe.rolling(5).mean()
+
+        return mavg
     
 
 # EOF
