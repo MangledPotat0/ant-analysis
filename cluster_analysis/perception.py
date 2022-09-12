@@ -3,6 +3,7 @@
 
 
 import argparse
+from datetime import date
 import h5py
 import json
 import numpy as np
@@ -16,10 +17,24 @@ import seaborn as sns
 with open('../paths.json','r') as f:
     paths = json.load(f)
     codepath = paths['codepath']
-    datapath = os.path.dirname(str(paths['datapath']+
-                               '\\trajectories\\clustering\\'))+'\\'
-    videopath = os.path.dirname(str(paths['datapath']+
-                                '\\videos\\clustering\\'))+'\\'
+    datapath = paths['datapath']
+
+today = date.today()
+today = today.strftime('%Y%m%d')
+
+src = str(datapath + 'preprocessed' + '\\')
+outputpath = str(datapath + 'processed\\contact\\')
+figspath = str(datapath + 'processed\\contact\\' + today + '\\')
+
+try:
+    os.mkdir(outputpath)
+except:
+    pass
+
+try:
+    os.mkdir(figspath)
+except:
+    pass
 
 
 # Perception radius from head in pixels, 10px ~= 1mm
@@ -28,17 +43,17 @@ radius = 20
 if __name__=='__main__':
 
     ap = argparse.ArgumentParser()
-    ap.add_argument('-f', '--file', required=True, nargs='+',
-                    help='Data file name')
-    ap.add_argument('-v', '--video', nargs='+',
-                    help='Video file name')
+    ap.add_argument('-id', '--expid', required=True,
+                    help='Experiment name')
 
     args = vars(ap.parse_args())
+    expid = args['expid']
     
-    dfile = h5py.File('{}{}.hdf5'.format(datapath, args['file'][0]), 'r')
-    dist_matrix_file = h5py.File('{}{}_distance_matrices.hdf5'.format(
-                                        datapath,args['file'][0]),'r')
-    #vfile = cv.VideoCapture('{}{}.mp4'.format(videopath, args['video'][0]))
+    dfile = h5py.File('{}{}\\{}_proc.hdf5'.format(src,expid,expid), 'r')
+    dist_matrix_file = h5py.File('{}{}\\{}_distance_matrices.hdf5'.format(
+                                        src,expid,expid),'r')
+    #vfile = cv.VideoCapture('{}preprocessed\\{}.mp4'.format(datapath,
+    #                                            args['expid'][0]))
     
     dmatrices = dist_matrix_file['matrix'][:]
 
@@ -53,8 +68,12 @@ if __name__=='__main__':
             df = pd.DataFrame(dmatrices[t,row])
             dframes[row] = dframes[row].append(df, ignore_index=True)
     
+    ct = 0 
     for dframe in dframes:
-        print('next')
-        print(dframe.head())
+        for distance in dframe:
+            print(distance)
+            if (distance < radius) & (distance > 0):
+                ct += 1
+                print(ct)
 
 # EOF
