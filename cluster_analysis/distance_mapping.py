@@ -7,15 +7,21 @@
 
 import argparse as arg
 import h5py
+import json
 import numpy as np
 import scipy.spatial as sp
 
-project_path = 'C:/Users/user/Desktop/Coding/ant/'
-data_path = str(project_path+'data/trajectories/')
-output_path = str(project_path+'data/')
+
+with open('../paths.json','r') as f:
+    paths = json.load(f)
+    codepath = paths['codepath']
+    datapath = paths['datapath']
+
+src = str(datapath + 'preprocessed' + '\\')
+
 
 def load_trajectories(fname):
-    with h5py.File('{}.hdf5'.format(fname), 'r') as dfile:
+    with h5py.File('{}_proc.hdf5'.format(fname), 'r') as dfile:
         keys = dfile.keys()
         length = max(len(dfile[key]) for key in keys)
         trajectories = np.full((len(keys),length,4,2), 0, dtype=float)
@@ -42,16 +48,17 @@ def compute_distances(trajectories):
 
 if __name__ == '__main__':
     ap = arg.ArgumentParser()
-    ap.add_argument('-f', '--file', required=True,
+    ap.add_argument('-id', '--expid', required=True,
                     help='Data file')
     args = vars(ap.parse_args())
+    expid = args['expid']
 
-    trajectories = load_trajectories("{}{}".format(data_path,args['file']))
+    trajectories = load_trajectories("{}{}\\{}".format(src, expid, expid))
 
     distances = compute_distances(trajectories)
 
-    with h5py.File('{}{}_distance_matrices.hdf5'.format(output_path,
-                                            args['file']), 'w') as outfile:
+    with h5py.File('{}{}\\{}_distance_matrices.hdf5'.format(src, expid, expid),
+                   'w') as outfile:
         outfile.create_dataset('matrix', data = distances)
 
 # EOF
