@@ -38,7 +38,7 @@ except:
 
 
 # Perception radius from head in pixels, 10px ~= 1mm
-radius = 20
+radius = 120
 
 if __name__=='__main__':
 
@@ -57,7 +57,7 @@ if __name__=='__main__':
     
     dmatrices = dist_matrix_file['matrix'][:]
 
-    antcount = np.shape(dmatrices[0])[0]
+    antcount = np.shape(dmatrices)[1]
     dframes = np.full(antcount, 0, dtype=object)
     for n in range(len(dframes)):
         dframes[n] = pd.DataFrame()
@@ -65,15 +65,20 @@ if __name__=='__main__':
 
     for t in range(len(dmatrices)):
         for row in range(len(dmatrices[t])):
-            df = pd.DataFrame(dmatrices[t,row])
+            df = pd.DataFrame([dmatrices[t,row]])
             dframes[row] = dframes[row].append(df, ignore_index=True)
-    
-    ct = 0 
-    for dframe in dframes:
-        for distance in dframe:
-            print(distance)
-            if (distance < radius) & (distance > 0):
-                ct += 1
-                print(ct)
+
+    ant = 0
+    for series in dframes:
+        ant += 1
+        interactions = [np.count_nonzero(
+                                 (distances < radius) & (distances > 0)
+                                 ) for distances in series.to_numpy()]
+
+        interactions = pd.DataFrame(interactions, columns=['interactions'])
+        interactions = interactions.rolling(10).sum()
+        sns.lineplot(data = interactions)
+        plt.savefig('{}{}{}'.format(figspath, expid, ant))
+        plt.close()
 
 # EOF
