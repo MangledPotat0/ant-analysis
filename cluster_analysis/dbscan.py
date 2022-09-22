@@ -74,9 +74,9 @@ def locate_knee_point(distances, t):
     return distances[knee.knee]
 
 
-def perform_dbscan(frameset, eps, t, vidwriter):
-    frame = frameset['frame']
-    db = cluster.DBSCAN(eps=eps, min_samples=3).fit(frameset)
+def perform_dbscan(frame, frameset, eps, t, vidwriter):
+    npfy = frameset.to_numpy()[:,-2:]
+    db = cluster.DBSCAN(eps=eps, min_samples=3).fit(npfy)
     core_samples_mask = np.zeros_like(db.labels_, dtype=bool)
     core_samples_mask[db.core_sample_indices_] = True
     labels = db.labels_
@@ -113,19 +113,25 @@ def perform_dbscan(frameset, eps, t, vidwriter):
 def stack_coordinates(dframe):
     combined = pd.DataFrame()
     for part in ['head', 'thorax', 'abdomen']:
-        newdict = {}
         copy = dframe.to_dict()
         coords = ['x','y']
+        newdict = {}
         for coord in coords:
+            newdict[coord] = {}
             ref = list(copy['{}_{}'.format(part,coord)].keys())
-            newID = (ref[0][0],
-                     ref[0][1],
-                     part)
-            newdict[coord] = \
-                    {newID : copy['{}_{}'.format(part,coord)][ref[0]]}
+            for pair in ref:
+                newID = (pair[0],
+                         pair[1],
+                         part)
+                newdict[coord][newID] = copy['{}_{}'.format(part,coord)][pair]
         newf = pd.DataFrame.from_dict(newdict)
+
+        if newf.empty:
+            emptydict = {'x':{(0,1,2):0},'y':{(0,1,2):0}}
+            newf = pd.DataFrame.from_dict(emptydict)
         newf.index.names = ['frame', 'antID', 'part']
         combined = combined.append(newf)
+    combined = combined.sort_index()
 
     return combined
 
@@ -164,8 +170,8 @@ if __name__ == '__main__':
     min_samples = 9
     for t in range(maxframe):
         _, frame = vidstream.read()
-        if t % 50 == 40:
-            frameset = pd.DataFrame(columns=['x', 'y'])
+        if t % 10 == 0:
+            frameset = pd.DataFrame()
             ct = 0
             try:
                 instance = dtable[dtable['frame']==t+1]
@@ -176,16 +182,18 @@ if __name__ == '__main__':
                 position = position.set_index(['frame','antID'])
 
                 position = stack_coordinates(position)
+                position = position.reset_index()
+                frameset = frameset.append(position, ignore_index=True)
                 
             except IndexError:
                 print('Warning: IndexError. ',
                       'Likely means a missing instance.')
+
             ct += 1
             if np.size(frameset.to_numpy()) != 0:
-                print(mlem)
                 #nearest = find_nearest_neighbors(frameset, min_samples, t)
                 eps = 90#locate_knee_point(nearest, t)
-                perform_dbscan(frameset, eps, t, out)
+                perform_dbscan(frame, frameset, eps, t, out)
             else:
                 pass
             
