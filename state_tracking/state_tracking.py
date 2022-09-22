@@ -27,6 +27,7 @@ with open('../paths.json','r') as f:
 today = date.today()
 today = today.strftime('%Y%m%d')
 
+srcpath = str(datapath + 'preprocessed\\')
 outputpath = str(datapath + 'processed\\state_tracking\\')
 figspath = str(datapath + 'processed\\state_tracking\\' + today + '\\')
 
@@ -50,10 +51,10 @@ if __name__ == '__main__':
     expid = args['expid']
     threshold = float(args['threshold'])
 
-    dfile = h5py.File('{}preprocessed\\{}\\{}_proc.hdf5'.format(
-                                datapath, expid, expid))
-    vfile = cv.VideoCapture('{}preprocessed\\{}\\{}corrected.mp4'.format(
-                                datapath, expid, expid))
+    dfile = h5py.File('{}{}\\{}_proc.hdf5'.format(
+                                srcpath, expid, expid))
+    vfile = cv.VideoCapture('{}{}\\{}corrected.mp4'.format(
+                                srcpath, expid, expid))
     maxframe = int(vfile.get(cv.CAP_PROP_FRAME_COUNT))
     dtable = pd.DataFrame()
 
@@ -78,8 +79,8 @@ if __name__ == '__main__':
     active = dtable[dtable['state']=='active']
     inactive = dtable[dtable['state']=='inactive']
 
-    dtable.to_hdf('{}{}_active_ants.hdf5'.format(figspath, expid), mode='w',
-                  key='ant_state_data')
+    dtable.to_hdf('{}{}\\{}_active_ants.hdf5'.format(srcpath, expid, expid),
+                  mode='w', key='ant_state_data')
 
     '''
     wh = (4150, 2020)

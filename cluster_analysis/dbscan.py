@@ -13,6 +13,7 @@ from sklearn.neighbors import NearestNeighbors
 import seaborn as sns
 import seaborn_image as isns
 
+mlem='mlem'
 
 # Usage example taken from:
 # https://scikit-learn.org/stable/modules/clustering.html#dbscan
@@ -74,7 +75,8 @@ def locate_knee_point(distances, t):
 
 
 def perform_dbscan(frame, frameset, eps, t, vidwriter):
-    db = cluster.DBSCAN(eps=eps, min_samples=3).fit(frameset)
+    npfy = frameset.to_numpy()[:,-2:]
+    db = cluster.DBSCAN(eps=eps, min_samples=3).fit(npfy)
     core_samples_mask = np.zeros_like(db.labels_, dtype=bool)
     core_samples_mask[db.core_sample_indices_] = True
     labels = db.labels_
@@ -106,6 +108,34 @@ def perform_dbscan(frame, frameset, eps, t, vidwriter):
     return 
 
 
+# Takes the dataframe with three x-y pairs in their own columns and stack them
+# into two columns for x and y
+def stack_coordinates(dframe):
+    combined = pd.DataFrame()
+    for part in ['head', 'thorax', 'abdomen']:
+        copy = dframe.to_dict()
+        coords = ['x','y']
+        newdict = {}
+        for coord in coords:
+            newdict[coord] = {}
+            ref = list(copy['{}_{}'.format(part,coord)].keys())
+            for pair in ref:
+                newID = (pair[0],
+                         pair[1],
+                         part)
+                newdict[coord][newID] = copy['{}_{}'.format(part,coord)][pair]
+        newf = pd.DataFrame.from_dict(newdict)
+
+        if newf.empty:
+            emptydict = {'x':{(0,1,2):0},'y':{(0,1,2):0}}
+            newf = pd.DataFrame.from_dict(emptydict)
+        newf.index.names = ['frame', 'antID', 'part']
+        combined = combined.append(newf)
+    combined = combined.sort_index()
+
+    return combined
+
+
 
 if __name__ == '__main__':
     ap = argparse.ArgumentParser()
@@ -115,8 +145,8 @@ if __name__ == '__main__':
     args = vars(ap.parse_args())
     expid = args['expid']
 
-    dfile = h5py.File('{}\\preprocessed\\{}\\{}_proc.hdf5'.format(
-                            datapath, expid, expid), 'r')
+    dtable = pd.read_hdf('{}\\preprocessed\\{}\\{}_active_ants.hdf5'.format(
+                            datapath, expid, expid))
     vidstream = cv.VideoCapture('{}\\preprocessed\\{}\\{}corrected.mp4'.format(
                             datapath, expid, expid))
     maxframe = int(vidstream.get(cv.CAP_PROP_FRAME_COUNT))
@@ -140,24 +170,32 @@ if __name__ == '__main__':
     min_samples = 9
     for t in range(maxframe):
         _, frame = vidstream.read()
-        if t % 250 == 0:
-            frameset = pd.DataFrame(columns=['x', 'y'])
+        if t % 10 == 0:
+            frameset = pd.DataFrame()
             ct = 0
-            for key in dfile.keys():
-                dset = dfile[key]
-                try:
-                    instance = np.where(dset[:,0,0] == t)[0][0]
-                    position = pd.DataFrame(dset[instance, 1:],
-                                            columns=['x','y'])
-                    position.dropna(inplace=True)
-                    frameset = frameset.append(position)
-                except IndexError:
-                    print('Warning: IndexError. ',
-                          'Likely means a missing instance.')
-                ct += 1
-            nearest = find_nearest_neighbors(frameset, min_samples, t)
-            eps = 90#locate_knee_point(nearest, t)
-            perform_dbscan(frame, frameset, eps, t, out)
+            try:
+                instance = dtable[dtable['frame']==t+1]
+                inactive = instance[instance['state'] == 'inactive']
+                position = inactive.drop(['orientation', 'state'], axis=1)
+                position.dropna(inplace=True)
+                
+                position = position.set_index(['frame','antID'])
+
+                position = stack_coordinates(position)
+                position = position.reset_index()
+                frameset = frameset.append(position, ignore_index=True)
+                
+            except IndexError:
+                print('Warning: IndexError. ',
+                      'Likely means a missing instance.')
+
+            ct += 1
+            if np.size(frameset.to_numpy()) != 0:
+                #nearest = find_nearest_neighbors(frameset, min_samples, t)
+                eps = 90#locate_knee_point(nearest, t)
+                perform_dbscan(frame, frameset, eps, t, out)
+            else:
+                pass
             
     out.release()
 
