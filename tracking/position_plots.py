@@ -27,6 +27,7 @@ with open('../paths.json','r') as f:
 today = date.today()
 today = today.strftime('%Y%m%d')
 
+srcpath = str(datapath + 'preprocessed\\')
 outputpath = str(datapath + 'processed\\position_plots\\')
 figspath = str(datapath + 'processed\\position_plots\\' + today + '\\')
 
@@ -55,10 +56,8 @@ def autocorrelate(column, dset):
 if __name__=='__main__':
 
     ap = argparse.ArgumentParser()
-    ap.add_argument('-f', '--file', required=True, nargs='+',
-                    help='Data file name')
-    ap.add_argument('-v', '--video', nargs='+',
-                    help='Video file name')
+    ap.add_argument('-id', '--expid', required=True, nargs='+',
+                    help='Experiment ID')
 
     args = vars(ap.parse_args())
         
@@ -70,11 +69,12 @@ if __name__=='__main__':
     ct = 0
     n = 0
     
-    for fname in args['file']:
-        dfile = h5py.File('{}preprocessed\\{}\\{}_proc.hdf5'.format(
-                          datapath,fname,fname), 'r')
-        #vfile = cv.VideoCapture('{}{}\\{}'.format(datapath, 
-        #                        args['video'], args['video']))
+    for fname in args['expid']:
+        dfile = h5py.File('{}{}\\{}_proc.hdf5'.format(
+                                        srcpath,fname,fname),
+                          'r')
+        vfile = cv.VideoCapture('{}{}\\{}corrected.mp4'.format(
+                                            srcpath,fname,fname))
         dframe = pd.DataFrame(columns=cols)
         
         for key in dfile.keys():
@@ -106,16 +106,16 @@ if __name__=='__main__':
             plt.savefig('{}check.png'.format(figspath))
             plt.close()
 
-            sns.set(style='darkgrid')
-            fig = plt.figure()
-            ax = fig.add_subplot(111, projection='3d')
-            x = range(len(pair))
-            y = pair['thorax_x']
-            z = pair['thorax_y']
+            #sns.set(style='darkgrid')
+            #fig = plt.figure()
+            #ax = fig.add_subplot(111, projection='3d')
+            #x = range(len(pair))
+            #y = pair['thorax_x']
+            #z = pair['thorax_y']
 
-            ax.plot(x, y, z)
-            plt.show()
-            plt.close()
+            #ax.plot(x, y, z)
+            #plt.show()
+            #plt.close()
             
             dframe = dframe.append(df, ignore_index=True)
             ct += 1
