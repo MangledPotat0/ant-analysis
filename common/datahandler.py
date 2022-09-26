@@ -17,7 +17,7 @@ class TrajectoryData:
         t, _, _ = np.shape(dset)
         flat = dset.reshape([t,8])
         dframe = pd.DataFrame(flat, columns=cols)
-        self.trajectory_ = dframe
+        self.trajectory_ = moving_average(dframe, 5)
         self.firstderivative_ = pd.DataFrame()
         self.speed_ = pd.DataFrame()
 
@@ -59,7 +59,6 @@ class TrajectoryData:
         return pd.DataFrame(data, columns=colnames)
     
     def compute_speed(self, dtable):
-        dtable = moving_average(dtable, 5)
         colnames = ['frame', 'angular_velocity',
                     'head', 'thorax','abdomen', 'centroid']
 
