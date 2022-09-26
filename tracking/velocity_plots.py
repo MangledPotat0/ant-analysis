@@ -1,6 +1,6 @@
 ################################################################################
 ################################################################################
-
+mlem = 'mlem'
 
 import sys
 sys.path.append('..\\common')
@@ -28,6 +28,7 @@ with open('../paths.json','r') as f:
 today = date.today()
 today = today.strftime('%Y%m%d')
 
+srcpath = str(datapath + 'preprocessed\\')
 outputpath = str(datapath + 'processed\\speed_plots\\')
 figspath = str(datapath + 'processed\\speed_plots\\' + today + '\\')
 
@@ -59,8 +60,8 @@ def compute_speed(velocity):
 if __name__=='__main__':
 
     ap = argparse.ArgumentParser()
-    ap.add_argument('-f', '--file', required=True, nargs='+',
-                    help='Data file name')
+    ap.add_argument('-id', '--expid', required=True, nargs='+',
+                    help='Experiment ID')
 
     args = vars(ap.parse_args())
         
@@ -70,9 +71,10 @@ if __name__=='__main__':
 
     ct = 0
     
-    for fname in args['file']:
-        dfile = h5py.File('{}preprocessed\\{}\\{}_proc.hdf5'.format(
-                                datapath, fname, fname), 'r')
+    dspeed_all = pd.DataFrame()
+    for fname in args['expid']:
+        dfile = h5py.File('{}{}\\{}_proc.hdf5'.format(
+                                srcpath, fname, fname), 'r')
         #vfile = cv.VideoCapture('{}preprocessed\\{}\\{}corrected.mp4'.format(
         #                        datapath, fname, fname))
         dframe = pd.DataFrame(columns=cols)
@@ -82,14 +84,19 @@ if __name__=='__main__':
             dset = dfile[key][:]
             data = TrajectoryData(dset)
             df = data.speed()
-            dspeed = dspeed.append(df['thorax'].copy(),ignore_index=True)
+            df = pd.DataFrame([df.frame, df.centroid]).transpose()
+            dspeed = dspeed.append(df.copy(),ignore_index=True)
             ct += 1
 
-        g = sns.histplot(data=dspeed)
-        g.set_xlim(0,80)
-        g.set_ylim(0,7000)
+        dspeed = dspeed.loc[dspeed['centroid'] <= 50]
+        dspeed_all = dspeed_all.append(dspeed)
+        g = sns.histplot(data=dspeed, x='centroid', log_scale=True)
         plt.savefig('{}{}_speed_histogram.png'.format(figspath,fname))
         plt.close()
+
+    g = sns.histplot(data=dspeed_all, x='centroid', log_scale=True)
+    plt.savefig('{}{}_speed_histogram.png'.format(figspath,fname))
+    plt.close()
 
 
 ## EOF

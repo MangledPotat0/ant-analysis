@@ -170,7 +170,7 @@ if __name__ == '__main__':
     min_samples = 9
     for t in range(maxframe):
         _, frame = vidstream.read()
-        if t % 10 == 0:
+        if t % 1 == 0:
             frameset = pd.DataFrame()
             ct = 0
             try:
