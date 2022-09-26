@@ -59,6 +59,7 @@ class TrajectoryData:
         return pd.DataFrame(data, columns=colnames)
     
     def compute_speed(self, dtable):
+        dtable = moving_average(dtable, 5)
         colnames = ['frame', 'angular_velocity',
                     'head', 'thorax','abdomen', 'centroid']
 
@@ -76,7 +77,7 @@ class TrajectoryData:
         return newtable
 
     def moving_average(self, dframe, interval):
-        mavg = dframe.rolling(5).mean()
+        mavg = dframe.rolling(interval).mean()
 
         return mavg
     
