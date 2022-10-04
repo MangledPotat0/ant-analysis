@@ -27,6 +27,7 @@ with open('../paths.json','r') as f:
 today = date.today()
 today = today.strftime('%Y%m%d')
 
+srcpath = str(datapath + 'preprocessed\\')
 outputpath = str(datapath + 'processed\\state_tracking\\')
 figspath = str(datapath + 'processed\\state_tracking\\' + today + '\\')
 
@@ -51,7 +52,8 @@ if __name__ == '__main__':
     allvalues = pd.Series(dtype=float)
 
     for expid in expids:
-        dtable = pd.read_hdf('{}{}_active_ants.hdf5'.format(figspath, expid))
+        dtable = pd.read_hdf('{}{}\\{}_active_ants.hdf5'.format(
+                                                    srcpath, expid, expid))
         maxant = max(dtable['antID'])
 
         values = []
