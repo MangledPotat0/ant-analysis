@@ -9,6 +9,7 @@ import argparse
 import cv2 as cv
 from datetime import date
 import h5py
+import itertools as it
 import json
 from matplotlib import pyplot as plt
 import numpy as np
@@ -43,11 +44,41 @@ except:
     pass
 
 
+def groupc(src):
+    for x,y in it.groupby(src, lambda n, c=it.count(): n-next(c)):
+        y = list(y)
+        print(len(np.shape(y)))
+        if len(np.shape(y)) == 1:
+            yield y[0], y[-1]
+        else:
+            yield y[0][1], y[-1][1]
+
+
+# Take list of 'active' ants as input,
+# Check the root square displacement over different timescales
+# to examine whether the ants are actually active or if the detected
+# movement is strongly timescale dependent.
+def flicker_clean(dframe):
+    
+    groups = {}
+    for ant in list(set(dframe['antID'].to_list())):
+        print(ant)
+        active = dframe[dframe['antID'] == ant]
+        active.sort_values(by=['frame'])
+        frame_list = active['frame'].to_numpy()
+        groups[ant] = list(groupc(frame_list))
+        for bounds in groups[ant]:
+            sequential = active.loc[bounds[0]:bounds[1]]
+            #print(sequential)
+        exit()
+    return
+
 if __name__ == '__main__':
 
     ap = argparse.ArgumentParser()
     ap.add_argument('-id', '--expid', help='Experiment ID')
     ap.add_argument('-t', '--threshold', help='Threshold value for speed')
+    ap.add_argument('-m', '--montage', help='Whether or not to make a montage')
     args = vars(ap.parse_args())
     expid = args['expid']
     threshold = float(args['threshold'])
@@ -83,44 +114,45 @@ if __name__ == '__main__':
     dtable.to_hdf('{}{}\\{}_active_ants.hdf5'.format(srcpath, expid, expid),
                   mode='w', key='ant_state_data')
 
-    '''
-    wh = (4150, 2020)
-    out = cv.VideoWriter('{}{}_cluster_montage.mp4'.format(figspath, expid),
-                         apiPreference = cv.CAP_ANY,
-                         fourcc = cv.VideoWriter_fourcc(*'mp4v'),
-                         fps = 10.0,
-                         frameSize = wh,
-                         isColor = True)
+    flicker_clean(active)
 
-    imstack = []
+    if int(args['montage']) == 1:
 
-    for n in range(maxframe):
-        ret, frame = vfile.read()
-        assert ret, "Video read is failing"
-        
-        objects = dtable[dtable['frame']==n]
+        wh = (4150, 2020)
+        out = cv.VideoWriter('{}{}_cluster_montage.mp4'.format(figspath, expid),
+                             apiPreference = cv.CAP_ANY,
+                             fourcc = cv.VideoWriter_fourcc(*'mp4v'),
+                             fps = 10.0,
+                             frameSize = wh,
+                             isColor = True)
 
-        fig = plt.figure(figsize=(8.3,4.04),dpi=500)
-        ax = fig.subplots()
+        imstack = []
 
-        hue_order = ['inactive', 'active']
-        sns.scatterplot(data=objects, x='thorax_x', y='thorax_y', ax=ax,
-                        hue='state', hue_order=hue_order, palette='deep')
-        ax.imshow(frame)
-        ax.set_axis_off()
-        plt.subplots_adjust(top=1,bottom=0,right=0.91,left=0,hspace=0,wspace=0)
-        plt.legend(bbox_to_anchor=(1,1), loc='upper left')
+        for n in range(maxframe):
+            ret, frame = vfile.read()
+            assert ret, "Video read is failing"
+            
+            objects = dtable[dtable['frame']==n]
 
-        fig.canvas.draw()
+            fig = plt.figure(figsize=(8.3,4.04),dpi=500)
+            ax = fig.subplots()
 
-        outframe = np.frombuffer(fig.canvas.tostring_rgb(), dtype=np.uint8)
-        outframe = outframe.reshape(fig.canvas.get_width_height()[::-1] + (3,))
-        plt.close()
-        out.write(outframe)
+            hue_order = ['inactive', 'active']
+            sns.scatterplot(data=objects, x='thorax_x', y='thorax_y', ax=ax,
+                            hue='state', hue_order=hue_order, palette='deep')
+            ax.imshow(frame)
+            ax.set_axis_off()
+            plt.subplots_adjust(top=1,bottom=0,right=0.91,left=0,hspace=0,wspace=0)
+            plt.legend(bbox_to_anchor=(1,1), loc='upper left')
 
-    out.release()
-    '''
-    
+            fig.canvas.draw()
+
+            outframe = np.frombuffer(fig.canvas.tostring_rgb(), dtype=np.uint8)
+            outframe = outframe.reshape(fig.canvas.get_width_height()[::-1] + (3,))
+            plt.close()
+            out.write(outframe)
+
+        out.release()
 
     sns.histplot(data=active, x='frame', binwidth=100) 
     plt.savefig('{}{}active_hist.png'.format(figspath, expid))
