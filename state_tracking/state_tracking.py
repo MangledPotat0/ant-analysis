@@ -47,7 +47,6 @@ except:
 def groupc(src):
     for x,y in it.groupby(src, lambda n, c=it.count(): n-next(c)):
         y = list(y)
-        print(len(np.shape(y)))
         if len(np.shape(y)) == 1:
             yield y[0], y[-1]
         else:
@@ -61,16 +60,18 @@ def groupc(src):
 def flicker_clean(dframe):
     
     groups = {}
+    print(list(set(dframe['antID'].to_list())))
     for ant in list(set(dframe['antID'].to_list())):
-        print(ant)
         active = dframe[dframe['antID'] == ant]
         active.sort_values(by=['frame'])
         frame_list = active['frame'].to_numpy()
         groups[ant] = list(groupc(frame_list))
         for bounds in groups[ant]:
-            sequential = active.loc[bounds[0]:bounds[1]]
-            #print(sequential)
-        exit()
+            print(bounds)
+            sequential = active.loc[
+                    (active['frame']>=bounds[0]) & (active['frame']<=bounds[1])]
+            print(sequential)
+    exit()
     return
 
 if __name__ == '__main__':
