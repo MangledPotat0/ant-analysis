@@ -60,19 +60,16 @@ def groupc(src):
 def flicker_clean(dframe):
     
     groups = {}
-    print(list(set(dframe['antID'].to_list())))
     for ant in list(set(dframe['antID'].to_list())):
         active = dframe[dframe['antID'] == ant]
         active.sort_values(by=['frame'])
         frame_list = active['frame'].to_numpy()
         groups[ant] = list(groupc(frame_list))
         for bounds in groups[ant]:
-            print(bounds)
             sequential = active.loc[
                     (active['frame']>=bounds[0]) & (active['frame']<=bounds[1])]
-            print(sequential)
-    exit()
-    return
+            yield sequential
+    
 
 if __name__ == '__main__':
 
@@ -115,7 +112,13 @@ if __name__ == '__main__':
     dtable.to_hdf('{}{}\\{}_active_ants.hdf5'.format(srcpath, expid, expid),
                   mode='w', key='ant_state_data')
 
-    flicker_clean(active)
+    for iterable in flicker_clean(active):
+        initial = iterable.loc[0].copy()
+        initial = initial.drop('state')
+        iterable = iterable.subtract(initial, axis=1)
+        iterable = iterable.apply(average,)
+        print(iterable)
+    
 
     if int(args['montage']) == 1:
 
@@ -160,6 +163,6 @@ if __name__ == '__main__':
     plt.close()
     sns.histplot(data=inactive, x='frame', binwidth=100) 
     plt.savefig('{}{}_inactive_hist.png'.format(figspath, expid))
-    
+
 
 # EOF
