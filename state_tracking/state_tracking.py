@@ -76,7 +76,8 @@ if __name__ == '__main__':
     ap = argparse.ArgumentParser()
     ap.add_argument('-id', '--expid', help='Experiment ID')
     ap.add_argument('-t', '--threshold', help='Threshold value for speed')
-    ap.add_argument('-m', '--montage', help='Whether or not to make a montage')
+    ap.add_argument('-m', '--montage', action='store_true',
+                    help='Whether or not to make a montage')
     args = vars(ap.parse_args())
     expid = args['expid']
     threshold = float(args['threshold'])
@@ -112,12 +113,25 @@ if __name__ == '__main__':
     dtable.to_hdf('{}{}\\{}_active_ants.hdf5'.format(srcpath, expid, expid),
                   mode='w', key='ant_state_data')
 
+    ct = 0
     for iterable in flicker_clean(active):
-        initial = iterable.loc[0].copy()
+        ct+=1
+        initial = iterable.reset_index().loc[0]
         initial = initial.drop('state')
-        iterable = iterable.subtract(initial, axis=1)
-        iterable = iterable.apply(average,)
-        print(iterable)
+        initial = initial.drop('antID')
+        initial = initial.drop('frame')
+        diff = iterable.copy().subtract(initial, axis=1)
+        diff = diff.apply(lambda x: x**2)
+        speed = pd.DataFrame(columns=['frame', 'antID', 'displacement'])
+        speed['displacement'] = (np.sqrt((diff['head_x'] + diff['head_y']
+                            ).astype(float)) + np.sqrt((diff['thorax_x']
+                                + diff['thorax_y']).astype(float)) +
+                            np.sqrt((diff['abdomen_x'] + diff['abdomen_y']
+                            ).astype(float))) / 3
+        speed['frame'] = iterable['frame']
+        speed['antID'] = iterable['antID']
+        print(speed)
+
     
 
     if int(args['montage']) == 1:
