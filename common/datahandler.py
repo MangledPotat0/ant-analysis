@@ -1,7 +1,7 @@
 ################################################################################
 ################################################################################
 
-
+import math
 import numpy as np
 import pandas as pd
 
@@ -61,8 +61,8 @@ class TrajectoryData:
         return pd.DataFrame(data, columns=colnames)
     
     def compute_speed(self, dtable):
-        colnames = ['frame', 'angular_velocity',
-                    'head', 'thorax','abdomen', 'centroid']
+        colnames = ['frame', 'angular velocity',
+                    'head', 'thorax','abdomen', 'centroid speed']
 
         darray = dtable.to_numpy()
         newtable = pd.DataFrame()
@@ -74,6 +74,10 @@ class TrajectoryData:
                                np.mean([head,thorax,abdomen])])
             newrow = pd.DataFrame([newrow], columns=colnames)
             newtable = newtable.append(newrow, ignore_index=True)
+
+        newtable['angular velocity'] = newtable['angular velocity'] + math.pi / 2
+        newtable['angular velocity'] = newtable['angular velocity'] % math.pi
+        newtable['angular velocity'] = newtable['angular velocity'] - math.pi / 2
 
         return newtable
 
