@@ -122,16 +122,15 @@ if __name__ == '__main__':
         initial = initial.drop('frame')
         diff = iterable.copy().subtract(initial, axis=1)
         diff = diff.apply(lambda x: x**2)
-        speed = pd.DataFrame(columns=['frame', 'antID', 'displacement'])
-        speed['displacement'] = (np.sqrt((diff['head_x'] + diff['head_y']
+        disp = pd.DataFrame(columns=['frame', 'antID', 'displacement'])
+        disp['displacement'] = (np.sqrt((diff['head_x'] + diff['head_y']
                             ).astype(float)) + np.sqrt((diff['thorax_x']
                                 + diff['thorax_y']).astype(float)) +
                             np.sqrt((diff['abdomen_x'] + diff['abdomen_y']
                             ).astype(float))) / 3
-        speed['frame'] = iterable['frame']
-        speed['antID'] = iterable['antID']
-        print(speed)
-
+        disp['frame'] = iterable['frame']
+        disp['antID'] = iterable['antID']
+        print(disp)
     
 
     if int(args['montage']) == 1:
@@ -142,7 +141,7 @@ if __name__ == '__main__':
                              fourcc = cv.VideoWriter_fourcc(*'mp4v'),
                              fps = 10.0,
                              frameSize = wh,
-                             isColor = True)
+                            isColor = True)
 
         imstack = []
 
