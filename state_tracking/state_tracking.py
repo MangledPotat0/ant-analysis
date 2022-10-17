@@ -114,6 +114,7 @@ if __name__ == '__main__':
                   mode='w', key='ant_state_data')
 
     ct = 0
+    lengths = pd.DataFrame(columns=['length', 'width'])
     for iterable in flicker_clean(active):
         ct+=1
         initial = iterable.reset_index().loc[0]
@@ -130,7 +131,19 @@ if __name__ == '__main__':
                             ).astype(float))) / 3
         disp['frame'] = iterable['frame']
         disp['antID'] = iterable['antID']
-        print(disp)
+
+        if disp['displacement'].to_numpy()[-1] < threshold * disp.shape[0]:
+            if disp.shape[0] < 500:
+                shapes = pd.DataFrame([disp.shape], columns = ['length', 'width'])
+                lengths = lengths.append(shapes, ignore_index =True)
+
+                sns.scatterplot(x='frame', y='displacement', data=disp)
+                plt.savefig('{}{}.png'.format(figspath, ct))
+                plt.close()
+
+    sns.histplot(x='length', data=lengths, log_scale=True)
+    plt.savefig('{}lengths.png'.format(figspath))
+    plt.close()
     
 
     if int(args['montage']) == 1:
