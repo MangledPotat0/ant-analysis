@@ -11,6 +11,7 @@ from datetime import date
 import h5py
 import itertools as it
 import json
+from local_montage import montage_generator 
 from matplotlib import pyplot as plt
 import numpy as np
 import os
@@ -70,6 +71,9 @@ def flicker_clean(dframe):
                     (active['frame']>=bounds[0]) & (active['frame']<=bounds[1])]
             yield sequential
     
+fourcc = cv.VideoWriter_fourcc(*'mp4v')
+api = cv.CAP_ANY
+fps = 10
 
 if __name__ == '__main__':
 
@@ -84,9 +88,6 @@ if __name__ == '__main__':
 
     dfile = h5py.File('{}{}\\{}_proc.hdf5'.format(
                                 srcpath, expid, expid))
-    vfile = cv.VideoCapture('{}{}\\{}corrected.mp4'.format(
-                                srcpath, expid, expid))
-    maxframe = int(vfile.get(cv.CAP_PROP_FRAME_COUNT))
     dtable = pd.DataFrame()
 
     fig, ax = plt.subplots()
@@ -110,9 +111,6 @@ if __name__ == '__main__':
     active = dtable[dtable['state']=='active']
     inactive = dtable[dtable['state']=='inactive']
 
-    dtable.to_hdf('{}{}\\{}_active_ants.hdf5'.format(srcpath, expid, expid),
-                  mode='w', key='ant_state_data')
-
     ct = 0
     lengths = pd.DataFrame(columns=['length', 'width'])
     for iterable in flicker_clean(active):
@@ -133,9 +131,27 @@ if __name__ == '__main__':
         disp['antID'] = iterable['antID']
 
         if disp['displacement'].to_numpy()[-1] < threshold * disp.shape[0]:
-            if disp.shape[0] < 500:
+            if disp.shape[0] < 100:
+                for _, row in iterable.iterrows():
+                    crit = (dtable['antID'] == row['antID']) & (dtable['frame'] == row['frame'])
+                    dtable.loc[crit,'state'] = 'inactive'
+            elif disp.shape[0] < 0:
                 shapes = pd.DataFrame([disp.shape], columns = ['length', 'width'])
                 lengths = lengths.append(shapes, ignore_index =True)
+
+                window = 75
+
+                out = cv.VideoWriter('{}\\{}.mp4'.format(figspath,ct),
+                    apiPreference = api,
+                    fourcc = fourcc,
+                    fps = float(fps),
+                    frameSize = (window * 2, window * 2),
+                    isColor = True)
+
+                vfile = '{}{}\\{}corrected.mp4'.format(srcpath, expid, expid)
+                for mont in montage_generator(1, iterable, vfile, window):
+                    out.write(mont)
+                out.release()
 
                 sns.scatterplot(x='frame', y='displacement', data=disp)
                 plt.savefig('{}{}.png'.format(figspath, ct))
@@ -144,9 +160,16 @@ if __name__ == '__main__':
     sns.histplot(x='length', data=lengths, log_scale=True)
     plt.savefig('{}lengths.png'.format(figspath))
     plt.close()
-    
+
+    inactive = dtable[dtable['state']=='inactive']
+    dtable.to_hdf('{}{}\\{}_active_ants.hdf5'.format(srcpath, expid, expid),
+                  mode='w', key='ant_state_data')
+
 
     if int(args['montage']) == 1:
+        video = cv.VideoCapture('{}{}\\{}corrected.mp4'.format(
+                                    srcpath, expid, expid))
+        maxframe = int(video.get(cv.CAP_PROP_FRAME_COUNT))
 
         wh = (4150, 2020)
         out = cv.VideoWriter('{}{}_cluster_montage.mp4'.format(figspath, expid),
@@ -159,7 +182,7 @@ if __name__ == '__main__':
         imstack = []
 
         for n in range(maxframe):
-            ret, frame = vfile.read()
+            ret, frame = video.read()
             assert ret, "Video read is failing"
             
             objects = dtable[dtable['frame']==n]
