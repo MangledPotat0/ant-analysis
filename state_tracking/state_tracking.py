@@ -1,5 +1,6 @@
 ################################################################################
 ################################################################################
+mlem = 'mlem'
 
 import sys
 sys.path.append('..\\common')
@@ -8,7 +9,9 @@ import argparse
 import cv2 as cv
 from datetime import date
 import h5py
+import itertools as it
 import json
+from local_montage import montage_generator 
 from matplotlib import pyplot as plt
 import numpy as np
 import os
@@ -42,20 +45,49 @@ except:
     pass
 
 
+def groupc(src):
+    for x,y in it.groupby(src, lambda n, c=it.count(): n-next(c)):
+        y = list(y)
+        if len(np.shape(y)) == 1:
+            yield y[0], y[-1]
+        else:
+            yield y[0][1], y[-1][1]
+
+
+# Take list of 'active' ants as input,
+# Check the root square displacement over different timescales
+# to examine whether the ants are actually active or if the detected
+# movement is strongly timescale dependent.
+def flicker_clean(dframe):
+    
+    groups = {}
+    for ant in list(set(dframe['antID'].to_list())):
+        active = dframe[dframe['antID'] == ant]
+        active.sort_values(by=['frame'])
+        frame_list = active['frame'].to_numpy()
+        groups[ant] = list(groupc(frame_list))
+        for bounds in groups[ant]:
+            sequential = active.loc[
+                    (active['frame']>=bounds[0]) & (active['frame']<=bounds[1])]
+            yield sequential
+    
+fourcc = cv.VideoWriter_fourcc(*'mp4v')
+api = cv.CAP_ANY
+fps = 10
+
 if __name__ == '__main__':
 
     ap = argparse.ArgumentParser()
     ap.add_argument('-id', '--expid', help='Experiment ID')
     ap.add_argument('-t', '--threshold', help='Threshold value for speed')
+    ap.add_argument('-m', '--montage', action='store_true',
+                    help='Whether or not to make a montage')
     args = vars(ap.parse_args())
     expid = args['expid']
     threshold = float(args['threshold'])
 
     dfile = h5py.File('{}{}\\{}_proc.hdf5'.format(
                                 srcpath, expid, expid))
-    vfile = cv.VideoCapture('{}{}\\{}corrected.mp4'.format(
-                                srcpath, expid, expid))
-    maxframe = int(vfile.get(cv.CAP_PROP_FRAME_COUNT))
     dtable = pd.DataFrame()
 
     fig, ax = plt.subplots()
@@ -79,53 +111,107 @@ if __name__ == '__main__':
     active = dtable[dtable['state']=='active']
     inactive = dtable[dtable['state']=='inactive']
 
+    ct = 0
+    lengths = pd.DataFrame(columns=['length', 'width'])
+    for iterable in flicker_clean(active):
+        ct+=1
+        initial = iterable.reset_index().loc[0]
+        initial = initial.drop('state')
+        initial = initial.drop('antID')
+        initial = initial.drop('frame')
+        diff = iterable.copy().subtract(initial, axis=1)
+        diff = diff.apply(lambda x: x**2)
+        disp = pd.DataFrame(columns=['frame', 'antID', 'displacement'])
+        disp['displacement'] = (np.sqrt((diff['head_x'] + diff['head_y']
+                            ).astype(float)) + np.sqrt((diff['thorax_x']
+                                + diff['thorax_y']).astype(float)) +
+                            np.sqrt((diff['abdomen_x'] + diff['abdomen_y']
+                            ).astype(float))) / 3
+        disp['frame'] = iterable['frame']
+        disp['antID'] = iterable['antID']
+
+        if disp['displacement'].to_numpy()[-1] < threshold * disp.shape[0]:
+            if disp.shape[0] < 100:
+                for _, row in iterable.iterrows():
+                    crit = (dtable['antID'] == row['antID']) & (dtable['frame'] == row['frame'])
+                    dtable.loc[crit,'state'] = 'inactive'
+            elif disp.shape[0] < 0:
+                shapes = pd.DataFrame([disp.shape], columns = ['length', 'width'])
+                lengths = lengths.append(shapes, ignore_index =True)
+
+                window = 75
+
+                out = cv.VideoWriter('{}\\{}.mp4'.format(figspath,ct),
+                    apiPreference = api,
+                    fourcc = fourcc,
+                    fps = float(fps),
+                    frameSize = (window * 2, window * 2),
+                    isColor = True)
+
+                vfile = '{}{}\\{}corrected.mp4'.format(srcpath, expid, expid)
+                for mont in montage_generator(1, iterable, vfile, window):
+                    out.write(mont)
+                out.release()
+
+                sns.scatterplot(x='frame', y='displacement', data=disp)
+                plt.savefig('{}{}.png'.format(figspath, ct))
+                plt.close()
+
+    sns.histplot(x='length', data=lengths, log_scale=True)
+    plt.savefig('{}lengths.png'.format(figspath))
+    plt.close()
+
+    inactive = dtable[dtable['state']=='inactive']
     dtable.to_hdf('{}{}\\{}_active_ants.hdf5'.format(srcpath, expid, expid),
                   mode='w', key='ant_state_data')
 
-    '''
-    wh = (4150, 2020)
-    out = cv.VideoWriter('{}{}_cluster_montage.mp4'.format(figspath, expid),
-                         apiPreference = cv.CAP_ANY,
-                         fourcc = cv.VideoWriter_fourcc(*'mp4v'),
-                         fps = 10.0,
-                         frameSize = wh,
-                         isColor = True)
 
-    imstack = []
+    if int(args['montage']) == 1:
+        video = cv.VideoCapture('{}{}\\{}corrected.mp4'.format(
+                                    srcpath, expid, expid))
+        maxframe = int(video.get(cv.CAP_PROP_FRAME_COUNT))
 
-    for n in range(maxframe):
-        ret, frame = vfile.read()
-        assert ret, "Video read is failing"
-        
-        objects = dtable[dtable['frame']==n]
+        wh = (4150, 2020)
+        out = cv.VideoWriter('{}{}_cluster_montage.mp4'.format(figspath, expid),
+                             apiPreference = cv.CAP_ANY,
+                             fourcc = cv.VideoWriter_fourcc(*'mp4v'),
+                             fps = 10.0,
+                             frameSize = wh,
+                            isColor = True)
 
-        fig = plt.figure(figsize=(8.3,4.04),dpi=500)
-        ax = fig.subplots()
+        imstack = []
 
-        hue_order = ['inactive', 'active']
-        sns.scatterplot(data=objects, x='thorax_x', y='thorax_y', ax=ax,
-                        hue='state', hue_order=hue_order, palette='deep')
-        ax.imshow(frame)
-        ax.set_axis_off()
-        plt.subplots_adjust(top=1,bottom=0,right=0.91,left=0,hspace=0,wspace=0)
-        plt.legend(bbox_to_anchor=(1,1), loc='upper left')
+        for n in range(maxframe):
+            ret, frame = video.read()
+            assert ret, "Video read is failing"
+            
+            objects = dtable[dtable['frame']==n]
 
-        fig.canvas.draw()
+            fig = plt.figure(figsize=(8.3,4.04),dpi=500)
+            ax = fig.subplots()
 
-        outframe = np.frombuffer(fig.canvas.tostring_rgb(), dtype=np.uint8)
-        outframe = outframe.reshape(fig.canvas.get_width_height()[::-1] + (3,))
-        plt.close()
-        out.write(outframe)
+            hue_order = ['inactive', 'active']
+            sns.scatterplot(data=objects, x='thorax_x', y='thorax_y', ax=ax,
+                            hue='state', hue_order=hue_order, palette='deep')
+            ax.imshow(frame)
+            ax.set_axis_off()
+            plt.subplots_adjust(top=1,bottom=0,right=0.91,left=0,hspace=0,wspace=0)
+            plt.legend(bbox_to_anchor=(1,1), loc='upper left')
 
-    out.release()
-    '''
-    
+            fig.canvas.draw()
+
+            outframe = np.frombuffer(fig.canvas.tostring_rgb(), dtype=np.uint8)
+            outframe = outframe.reshape(fig.canvas.get_width_height()[::-1] + (3,))
+            plt.close()
+            out.write(outframe)
+
+        out.release()
 
     sns.histplot(data=active, x='frame', binwidth=100) 
     plt.savefig('{}{}active_hist.png'.format(figspath, expid))
     plt.close()
     sns.histplot(data=inactive, x='frame', binwidth=100) 
     plt.savefig('{}{}_inactive_hist.png'.format(figspath, expid))
-    
+
 
 # EOF
