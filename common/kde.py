@@ -1,20 +1,9 @@
-################################################################################
-#                                                                              #
-#   Kernel Density Estimator                                                   #
-#   Code written by Dawith Lim                                                 #
-#                                                                              #
-#   Version 1.0.0.0.0.0                                                        #
-#   First written on: 2020/08/27                                               #
-#   Last modified: 2022/01/06                                                  #
-#                                                                              #
-#   Packages used:                                                             #
-#                                                                              #
-################################################################################
-
 import numpy as np
 import math
 from matplotlib import pyplot as plt
 
+
+# For a given histogram, return a KDE
 def kde(random_variable, resolution):
     h = bandwidth()
     n = len(random_variable)
@@ -32,17 +21,17 @@ def kde(random_variable, resolution):
         ordinate[i] = 1/(n * h) * sum(ker)
         integ += ordinate[i] * resolution
 
-    print(integ)
-
     return np.array([abcissa, ordinate/integ])
 
+# Hardcoded value because idk how to properly obtain the bandwidth
 def bandwidth():
 
     return .08
 
-def kernel(argument, kernel_type):
+def kernel(argument, kernel_type, params):
+    mean, sd = params
     if kernel_type.lower() == 'gaussian':
-        output = np.exp(-argument**2)
+        output = 1/np.sqrt(2*sd) * np.exp(-(argument - mean)**2 / (2*sd**2))
 
     return output
 
