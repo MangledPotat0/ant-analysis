@@ -1,32 +1,49 @@
-################################################################################
-################################################################################
-
 import math
 import numpy as np
 import pandas as pd
 
 
-# Data in the ant trajectory format
-# It should be a pandas dataframe with (t * n) shape where t = frame count.
+# A TrajectoryData object. The point of this is to keep commonly used data
+# manipulations as object attributes so that it can be called easily and without
+# re-writing the same function multiple times in multiple files. However this
+# comes at the expense of memory use since all the derived quantities are held
+# in memory even when used in scripts that don't need some of them.
+
 
 class TrajectoryData:
 
+    # Input data is a numpy array read directly from the $(EXPID)_proc.hdf file.
     def __init__(self, dset):
         cols = ['frame', 'orientation', 'head_x', 'head_y',
                 'thorax_x', 'thorax_y', 'abdomen_x', 'abdomen_y']
         t, _, _ = np.shape(dset)
         flat = dset.reshape([t,8])
         dframe = pd.DataFrame(flat, columns=cols)
-        self.trajectory_ = dframe
-        self.firstderivative_ = pd.DataFrame()
-        self.speed_ = pd.DataFrame()
+        self.dframe = dframe
 
+
+    # getters
+
+    @property
     def trajectory(self):
-        return self.trajectory_
+        return self.dframe
 
+    @property
+    def firstderivative(self):
+        return self.firstderivative_
+
+    @property
+    def speed(self):
+        return self.speed_
+    
+    @trajectory.setter
     def set_trajectory(self, newdata):
         self.trajectory_ = newdata
 
+
+    # setters
+
+    @firstderivative.setter
     def firstderivative(self):
         shape = np.shape(self.firstderivative_)
         if shape == (0, 0):
@@ -35,13 +52,17 @@ class TrajectoryData:
                                                 self.firstderivative_, 5)
             self.speed_ = self.compute_speed(self.firstderivative_)
         return self.firstderivative_
-
+    
+    @speed.setter
     def speed(self):
         shape = np.shape(self.firstderivative_)
         if shape == (0, 0):
             self.firstderivative_ = self.derivative(self.trajectory())
             self.speed_ = self.compute_speed(self.firstderivative_)
         return self.speed_
+
+
+    # other methods
 
     def derivative(self, dframe, order=1):
         colnames = dframe.columns
