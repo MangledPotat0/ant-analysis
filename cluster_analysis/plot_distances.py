@@ -11,15 +11,29 @@ import pandas as pd
 import seaborn as sns
 import seaborn_image as isns
 
-# TODO: The path management looks sketchy, check that it works in unix env
 
+# Setting paths
 with open('../paths.json','r') as f:
     paths = json.load(f)
     codepath = paths['codepath']
-    datapath = os.path.dirname(str(paths['datapath']+
-                               '\\clustering\\a')) + '\\'
-    videopath = os.path.dirname(str(paths['datapath']+
-                                '\\videos\\clustering\\a'))+'\\'
+    datapath = paths['datapath']
+
+today = date.today()
+today = today.strftime('%Y%m%d')
+
+outputpath = str(datapath + 'processed/distance_plots/')
+figspath = str(datapath + 'processed/distance_plots/' + today + '/')
+
+# Attempt to create the directories
+try:
+    os.mkdir(outputpath)
+except OSError:
+    pass
+
+try:
+    os.mkdir(figspath)
+except OSError:
+    pass
 
 
 # Extract the upper triangle of the distance matrix to eliminate redundancy
@@ -72,34 +86,35 @@ def generate_figure(values1d, image, ct):
 if __name__=="__main__":
     
     ap = argparse.ArgumentParser()
-    ap.add_argument('-f', '--file', required=True,
-                    help = 'data file name')
-    ap.add_argument('-v', '--video',
-                    help='Video file name (optional)')
+    ap.add_argument('-id', '--expid', required=True,
+                    help = 'Experiment ID')
 
     args = vars(ap.parse_args())
+    expid = args['expid']
 
-    with h5py.File(str(datapath + args['file']), 'r') as dfile:
+    with h5py.File('{}{}/{}_distance_matrices.hdf5'.format(
+                                datapath,expid,expid), 'r') as dfile:
         distance_matrices = dfile['matrix'][:]
 
-    vidstream = cv.VideoCapture(str(videopath+args['video']))
+    vidstream = cv.VideoCapture('{}{}/{}corrected.mp4'.format(
+                                            datapath,expid,expid))
     
     # Generate plot stack through time
     
+    stride = 250
     ct = 0
 
     stack = []
     fig = plt.figure(figsize=(5.5, 5.5))
+    # unpack the distance matrix and turn it into a radial distribution
+    # function plot
     for distance_matrix in distance_matrices:
         _, image = vidstream.read()
-        if ct % 250 == 0:
+        if ct % stride == 0:
             distance_list = convert_to_list(distance_matrix)
             rdf = radial_distribution(distance_list, 10)
             generate_figure(rdf, image, ct)
         ct += 1
 
             
-    #anim = ani.ArtistAnimation(fig, stack)
-    #anim.save('test.mp4', fps = 10)
-
 ##EOF
