@@ -4,7 +4,20 @@ import numpy as np
 import pandas as pd
 
 
-def montage_generator(expid, trajectory, rawvid, window):
+# Function for generating cropped montage that focuses only on one ant. Note
+# that this is a generator function that just spits out the images, the referent
+# needs to collect the images and export.
+
+# Inputs:
+#  trajectory | pandas DataFrame object containing the trajectory of interest
+#  rawvid     | string, full path to the target video
+#  window     | size of the window that is moving around with the trajectory
+
+# Output:
+#  roi        | numpy Array object containing cropped image of the region of
+#             | interest.
+
+def montage_generator(trajectory, rawvid, window):
 
     video = cv.VideoCapture(rawvid)
     ct = 0
