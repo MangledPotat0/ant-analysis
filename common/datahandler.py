@@ -38,28 +38,19 @@ class TrajectoryData:
     
     @trajectory.setter
     def set_trajectory(self, newdata):
-        self.trajectory_ = newdata
+        self.trajectory = newdata
 
 
     # setters
 
     @firstderivative.setter
     def firstderivative(self):
-        shape = np.shape(self.firstderivative_)
-        if shape == (0, 0):
-            self.firstderivative_ = self.derivative(self.trajectory())
-            self.firstderivative_ = self.moving_average(
-                                                self.firstderivative_, 5)
-            self.speed_ = self.compute_speed(self.firstderivative_)
-        return self.firstderivative_
+        firstderivative = self.derivative(self.trajectory)
+        self.firstderivative = self.moving_average(firstderivative, 5)
     
     @speed.setter
     def speed(self):
-        shape = np.shape(self.firstderivative_)
-        if shape == (0, 0):
-            self.firstderivative_ = self.derivative(self.trajectory())
-            self.speed_ = self.compute_speed(self.firstderivative_)
-        return self.speed_
+        self.speed = self.compute_speed(self.firstderivative)
 
 
     # other methods
@@ -87,6 +78,7 @@ class TrajectoryData:
 
         darray = dtable.to_numpy()
         newtable = pd.DataFrame()
+        # Take the average speed of the three positions
         for row in darray:
             head = np.sqrt(row[2]**2+row[3]**2)
             thorax = np.sqrt(row[4]**2+row[5]**2)
@@ -96,6 +88,7 @@ class TrajectoryData:
             newrow = pd.DataFrame([newrow], columns=colnames)
             newtable = newtable.append(newrow, ignore_index=True)
 
+        # Modulo and center the angular velocity so that we have range -pi to pi
         newtable['angular velocity'] = newtable['angular velocity'] + math.pi / 2
         newtable['angular velocity'] = newtable['angular velocity'] % math.pi
         newtable['angular velocity'] = newtable['angular velocity'] - math.pi / 2
