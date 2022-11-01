@@ -20,11 +20,14 @@ mlem='mlem'
 
 # Knee location example taken from:
 # https://towardsdatascience.com/how-to-use-dbscan-effectively-ed212c02e62
+# While the above method works ok a more effective alternative should be found
+# because using the above method at every frame results in wildly varying cutoff
 
-# Additional information from Cluster Analysis and Application
+# Reference for general information: 'Cluster Analysis and Application'
 # (isbn: 9783030745523)
 
-# Settings
+
+# configuring paths
 
 with open('../paths.json','r') as f:
     paths = json.load(f)
@@ -34,21 +37,37 @@ with open('../paths.json','r') as f:
 today = date.today()
 today = today.strftime('%Y%m%d')
 
-outputpath = str(datapath + 'processed\\cluster_dbscan\\')
-figspath = str(datapath + 'processed\\cluster_dbscan\\' + today + '\\')
+outputpath = str(datapath + 'processed/cluster_dbscan/')
+figspath = str(datapath + 'processed/cluster_dbscan/' + today + '/')
 
+# Attempt to create the directories
 try:
     os.mkdir(outputpath)
-except:
+except OSError:
     pass
 
 try:
     os.mkdir(figspath)
-except:
+except OSError:
     pass
 
 
-def find_nearest_neighbors(frameset, min_samples, t):
+# Search for the distances to n nearest neighbors for each ants. This distance
+# is needed to perform the unsupervised knee location.
+
+# Input:
+#  frameset    | pandas DataFrame object containing all coordinates used for
+#              | clustering.
+#  min_samples | int, number of nearest neighbors to find
+
+# output:
+#  distances   | numpy Array() object containing list of distances from ant to
+#              | its neighbors
+
+# The function call in the __main__ is currently disabled because of the above
+# issue with using knee locator.
+
+def find_nearest_neighbors(frameset, min_samples):
     nearest_neighbors = NearestNeighbors(n_neighbors=min_samples)
     neighbors = nearest_neighbors.fit(frameset)
     distances, indices = neighbors.kneighbors(frameset)
@@ -58,29 +77,69 @@ def find_nearest_neighbors(frameset, min_samples, t):
     return distances
 
 
-def locate_knee_point(distances, t):
+# Use the distances from find_nearest_neighbors() to find the knee position.
+# The function call in the __main__ is currently disabled because of the above
+# issue with using knee locator.
+
+# Input:
+#  distances | numpy array object from find_nearest_neighbors()
+#  t         | int frame label
+#  stride    | int, number of steps to skip between knee plots
+
+# Output:
+#  knee      | float value indicating distance to the knee position
+
+def locate_knee_point(distances, t, stride):
     idx = np.arange(len(distances))
-    knee = kneed.KneeLocator(idx, distances, S=1, curve='convex',
+    # Compute the index of the knee position 
+    knee_ = kneed.KneeLocator(idx, distances, S=1, curve='convex',
                              direction='increasing', interp_method='polynomial')
 
-    if t % 250 == 0:
+    # Generate the knee (elbow) plot at every 'stride' steps
+    if t % stride == 0:
         sns.lineplot(data=distances)
-        knee.plot_knee()
+        knee_.plot_knee()
         plt.xlabel('points')
         plt.ylabel('distance (px)')
         plt.savefig('{}distances_{}.png'.format(figspath,t))
         plt.close()
 
-    return distances[knee.knee]
+    # Find the distance corresponding to the knee
+    knee = distances[knee_.knee]
+
+    return knee
 
 
-def perform_dbscan(frame, frameset, eps, t, vidwriter):
+# Feed input data to perform clustering using DBSCAN and generate figure
+
+# Input:
+#  frame     | numpy Array object holding the frame (image)
+#  frameset  | pandas DataFrame object containing coordinates for clustering
+#  eps       | float, epsilon (size of the 'neighborhood' that DBSCAN uses to
+#            | search for other instances)
+#  vidwriter | cv2.VideoWriter buffer where the frames are saved
+
+# Output:
+#  None (tagged frames are saved to the buffer instead of being returned. An
+#  output pandas DataFrame should later be added where frameset is augmented
+#  with the cluster number assigned to the ant)
+
+def perform_dbscan(frame, frameset, eps, vidwriter):
     npfy = frameset.to_numpy()[:,-2:]
+    # min_samples=3 is used because the ant trajectory data has three body
+    # segments which are independently considered for clustering
     db = cluster.DBSCAN(eps=eps, min_samples=3).fit(npfy)
+    # Extract core samples, this is technically not necessary right now since
+    # the distinction between core sample and peripheral samples is not used for
+    # the analysis.
     core_samples_mask = np.zeros_like(db.labels_, dtype=bool)
     core_samples_mask[db.core_sample_indices_] = True
     labels = db.labels_
 
+    # Augment the frame image with markers indicating cluster membership of
+    # each coordinate pair. The choice of DPI and figsize needs to be tuned
+    # to correctly align the legends. I think this is dependent on code user's
+    # display resolution.
     dbframe = pd.DataFrame()
     fig = plt.figure(figsize=(8.3,4.04),dpi=500)
     ax = fig.subplots()
@@ -104,12 +163,19 @@ def perform_dbscan(frame, frameset, eps, t, vidwriter):
     plt.close()
     vidwriter.write(outframe)
 
-
     return 
 
 
 # Takes the dataframe with three x-y pairs in their own columns and stack them
 # into two columns for x and y
+
+# Input:
+#  dframe | pandas DataFrame object containing the coordinates of body parts
+
+# Output:
+#  combined | pandas DataFrame object where the x,y coordinates are all stacked
+#           | into the same columns regardless of body part designation.
+
 def stack_coordinates(dframe):
     combined = pd.DataFrame()
     for part in ['head', 'thorax', 'abdomen']:
@@ -136,46 +202,42 @@ def stack_coordinates(dframe):
     return combined
 
 
-
 if __name__ == '__main__':
+    # Input handling and initialization
     ap = argparse.ArgumentParser()
     ap.add_argument('-id', '--expid', required=True,
                     help='Data file name')
-    
     args = vars(ap.parse_args())
     expid = args['expid']
-
-    dtable = pd.read_hdf('{}\\preprocessed\\{}\\{}_active_ants.hdf5'.format(
+    dtable = pd.read_hdf('{}/preprocessed/{}/{}_active_ants.hdf5'.format(
                             datapath, expid, expid))
-    vidstream = cv.VideoCapture('{}\\preprocessed\\{}\\{}corrected.mp4'.format(
+    vidstream = cv.VideoCapture('{}/preprocessed/{}/{}corrected.mp4'.format(
                             datapath, expid, expid))
     maxframe = int(vidstream.get(cv.CAP_PROP_FRAME_COUNT))
-
-
     fig, ax = plt.subplots()
-
     wh = (4150, 2020)
-    
     out = cv.VideoWriter('{}cluster_montage.mp4'.format(figspath),
                          apiPreference = cv.CAP_ANY,
                          fourcc = cv.VideoWriter_fourcc(*'mp4v'),
                          fps = 10.0,
                          frameSize = wh,
                          isColor = True)
-
     imstack = []
-    
     # For min_samples the 'rule of thumb' is to use dimensionality * 2 or
     # greater (Sander et al., 1998).
     min_samples = 9
+
+
+    # Main loop performing DBSCAN frame by frame
     for t in range(maxframe):
-        _, frame = vidstream.read()
-        if t % 1 == 0:
+        readable, frame = vidstream.read()
+        if (t % 1 == 0) && readable:
             frameset = pd.DataFrame()
             ct = 0
+            # Extract instances corresponding to the current frame
             try:
                 instance = dtable[dtable['frame']==t+1]
-                inactive = instance[instance['state'] == 'inactive']
+                inactive = instance[instance['state']=='inactive']
                 position = inactive.drop(['orientation', 'state'], axis=1)
                 position.dropna(inplace=True)
                 
@@ -190,6 +252,7 @@ if __name__ == '__main__':
                       'Likely means a missing instance.')
 
             ct += 1
+            # Perform knee location and DBSCAN
             if np.size(frameset.to_numpy()) != 0:
                 #nearest = find_nearest_neighbors(frameset, min_samples, t)
                 eps = 90#locate_knee_point(nearest, t)
