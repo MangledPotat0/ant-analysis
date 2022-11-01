@@ -30,9 +30,9 @@ with open('../paths.json','r') as f:
 today = date.today()
 today = today.strftime('%Y%m%d')
 
-srcpath = str(datapath + 'preprocessed\\')
-outputpath = str(datapath + 'processed\\state_tracking\\')
-figspath = str(datapath + 'processed\\state_tracking\\' + today + '\\')
+srcpath = str(datapath + 'preprocessed/')
+outputpath = str(datapath + 'processed/state_tracking/')
+figspath = str(datapath + 'processed/state_tracking/' + today + '/')
 
 try:
     os.mkdir(outputpath)
@@ -86,7 +86,7 @@ if __name__ == '__main__':
     expid = args['expid']
     threshold = float(args['threshold'])
 
-    dfile = h5py.File('{}{}\\{}_proc.hdf5'.format(
+    dfile = h5py.File('{}{}/{}_proc.hdf5'.format(
                                 srcpath, expid, expid))
     dtable = pd.DataFrame()
 
@@ -133,7 +133,8 @@ if __name__ == '__main__':
         if disp['displacement'].to_numpy()[-1] < threshold * disp.shape[0]:
             if disp.shape[0] < 100:
                 for _, row in iterable.iterrows():
-                    crit = (dtable['antID'] == row['antID']) & (dtable['frame'] == row['frame'])
+                    crit = ((dtable['antID'] == row['antID']) &
+                            (dtable['frame'] == row['frame']))
                     dtable.loc[crit,'state'] = 'inactive'
             elif disp.shape[0] < 0:
                 shapes = pd.DataFrame([disp.shape], columns = ['length', 'width'])
@@ -141,14 +142,14 @@ if __name__ == '__main__':
 
                 window = 75
 
-                out = cv.VideoWriter('{}\\{}.mp4'.format(figspath,ct),
+                out = cv.VideoWriter('{}/{}.mp4'.format(figspath,ct),
                     apiPreference = api,
                     fourcc = fourcc,
                     fps = float(fps),
                     frameSize = (window * 2, window * 2),
                     isColor = True)
 
-                vfile = '{}{}\\{}corrected.mp4'.format(srcpath, expid, expid)
+                vfile = '{}{}/{}corrected.mp4'.format(srcpath, expid, expid)
                 for mont in montage_generator(1, iterable, vfile, window):
                     out.write(mont)
                 out.release()
@@ -162,12 +163,20 @@ if __name__ == '__main__':
     plt.close()
 
     inactive = dtable[dtable['state']=='inactive']
-    dtable.to_hdf('{}{}\\{}_active_ants.hdf5'.format(srcpath, expid, expid),
+    dtable.to_hdf('{}{}/{}_active_ants.hdf5'.format(srcpath, expid, expid),
                   mode='w', key='ant_state_data')
 
+    sns.histplot(data=active, x='frame', binwidth=100) 
+    plt.savefig('{}{}active_hist.png'.format(figspath, expid))
+    plt.close()
+    sns.histplot(data=inactive, x='frame', binwidth=100) 
+    plt.savefig('{}{}_inactive_hist.png'.format(figspath, expid))
 
+
+    # Montage generation. This part is very time consuming so the default is to
+    # not make a montage. Use -m flag to activate.
     if int(args['montage']) == 1:
-        video = cv.VideoCapture('{}{}\\{}corrected.mp4'.format(
+        video = cv.VideoCapture('{}{}/{}corrected.mp4'.format(
                                     srcpath, expid, expid))
         maxframe = int(video.get(cv.CAP_PROP_FRAME_COUNT))
 
@@ -206,12 +215,6 @@ if __name__ == '__main__':
             out.write(outframe)
 
         out.release()
-
-    sns.histplot(data=active, x='frame', binwidth=100) 
-    plt.savefig('{}{}active_hist.png'.format(figspath, expid))
-    plt.close()
-    sns.histplot(data=inactive, x='frame', binwidth=100) 
-    plt.savefig('{}{}_inactive_hist.png'.format(figspath, expid))
 
 
 # EOF
