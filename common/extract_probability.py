@@ -1,30 +1,35 @@
-################################################################################
-#                                                                              #
-#   Created: 2022/01/10                                                        #
-#   Last Modified: 2022/01/21                                                  #
-################################################################################
-
 import argparse
 import h5py
 import kde
 import math
 import numpy as np
 
-datapath = '../../data/trajectories/'
+# TODO: This code predates datahandler so it doesn't use class methods to
+# compute the derivatives. The code should be modified to make use of the common
+# infrastructure.
+
+# Setting paths
+with open('../paths.json','r') as f:
+    paths = json.load(f)
+    codepath = paths['codepath']
+    datapath = paths['datapath']
+
+today = date.today()
+today = today.strftime('%Y%m%d')
+
 
 ## Input data structure:
 #   HDF5 FILE
-#   >   trajectory#
+#   >   trajectory$n (HDF5 DATATABLE)
 #       >   [framenumber, orientation]
 #       >   [head_x, head_y]
 #       >   [thorax_x, thorax_y]
 #       >   [abdomen_x, abdomen_y]
 
-def load(filename):
-    datafile = h5py.File('{}_proc.hdf5'.format(filename), 'r')
-    tracks = []
-    for key in datafile.keys():
-        tracks.append(datafile[key][:])
+# Load data
+def load(expid):
+    datafile = h5py.File('{}{}{}_proc.hdf5'.format(datapath, expid, expid), 'r')
+    tracks = [datafile[key][:] for key in datafile.keys()]
     
     return tracks
 
